@@ -1,122 +1,2138 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  signInWithCustomToken, 
+  signInAnonymously, 
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  addDoc, 
+  getDocs, 
+  onSnapshot, 
+  query, 
+  deleteDoc,
+  updateDoc,
+  serverTimestamp,
+  writeBatch
+} from 'firebase/firestore';
+import { 
+  BookOpen, 
+  Calendar, 
+  MapPin, 
+  Search, 
+  Award, 
+  MessageSquare, 
+  Compass, 
+  Clock, 
+  ArrowLeft, 
+  ArrowRight, 
+  ChevronLeft, 
+  ChevronRight, 
+  User, 
+  CheckCircle, 
+  AlertCircle, 
+  Plus, 
+  Trash2, 
+  Sparkles, 
+  RefreshCw, 
+  Database,
+  FileText,
+  Eye,
+  Settings,
+  Lock,
+  Edit,
+  Save,
+  X,
+  Upload
+} from 'lucide-react';
 
-function App() {
-  const [count, setCount] = useState(0)
+let db = null;
+let auth = null;
+let appId = 'kuwait-100-plus-app';
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+try {
+  const firebaseConfig = typeof __firebase_config !== 'undefined' 
+    ? JSON.parse(__firebase_config) 
+    : {
+        apiKey: "",
+        authDomain: "mock-project.firebaseapp.com",
+        projectId: "mock-project",
+        storageBucket: "mock-project.appspot.com",
+        messagingSenderId: "123456789",
+        appId: "1:123:web:123"
+      };
+      
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  
+  if (typeof __app_id !== 'undefined') {
+    appId = __app_id;
+  }
+} catch (error) {
+  console.error("Firebase initialization failed, operating in memory-only mode:", error);
 }
 
-export default App
+const STATIC_RULERS_DATA = [
+  {
+    id: 'mubarak',
+    name: 'الشيخ مبارك الصباح (مبارك الكبير)',
+    period: '1896 - 1915',
+    color: '#8B0000',
+    bgGradient: 'from-red-950 to-amber-950',
+    title: 'مؤسس الدولة الحديثة وصانع اتفاقية الحماية التاريخية لعام 1899.',
+    achievements: [
+      'توقيع اتفاقية الصداقة والحماية التاريخية مع بريطانيا عام 1899 م لحفظ استقلال البلاد وتجارتها.',
+      'تأسيس أول مدرسة نظامية حديثة وهي المدرسة المباركية عام 1911 م لتحديد المنظومة التعليمية.',
+      'تأسيس أول مستشفى طبي حديث (المستشفى الأمريكاني) وربط الكويت بأول مكتب بريدي رسمي.',
+      'تأمين السيادة الكويتية البحرية والبرية واكتساب اعتراف إقليمي واسع بمكانة الكويت التجارية.'
+    ]
+  },
+  {
+    id: 'jaber_mubarak',
+    name: 'الشيخ جابر المبارك الصباح',
+    period: '1915 - 1917',
+    color: '#228B22',
+    bgGradient: 'from-emerald-950 to-amber-950',
+    title: 'حافظ الأمن الداخلي وراعي استمرارية السيادة والاستقرار الاقتصادي.',
+    achievements: [
+      'المحافظة على التوازن والهدوء الداخلي لدولة الكويت إبان الحرب العالمية الأولى.',
+      'دعم الاستقرار التجاري والبحري وتخفيض الضرائب والجمارك لتسهيل تدفق السلع والخدمات.',
+      'تعزيز مكانة الكويت كمركز وساطة وسلام إقليمي لحل النزاعات المحيطة.'
+    ]
+  },
+  {
+    id: 'salem_mubarak',
+    name: 'الشيخ سالم المبارك الصباح',
+    period: '1917 - 1921',
+    color: '#FFD700',
+    bgGradient: 'from-yellow-950 to-amber-950',
+    title: 'باني السور الثالث وقائد معركة الجهراء المجيدة للدفاع عن سيادة الوطن.',
+    achievements: [
+      'تشييد "سور الكويت الثالث" عام 1920 م في زمن قياسي (شهرين فقط) لحماية مدينة الكويت وتماسك الجبهة الداخلية.',
+      'قيادة القوات الكويتية وتأمين البلاد في معركة الجهراء التاريخية بالدفاع الأسطوري عن "القصر الأحمر".',
+      'توسيع شبكة البرق واللاسلكي لدعم الاتصال السريع وتحديث موانئ السفن البحرية.'
+    ]
+  },
+  {
+    id: 'ahmad_jaber',
+    name: 'الشيخ أحمد الجابر الصباح',
+    period: '1921 - 1950',
+    color: '#708090',
+    bgGradient: 'from-slate-900 to-slate-950',
+    title: 'أمير الذهب الأسود وصاحب اتفاقيات الامتياز البترولي الأولى وبداية التحول التنموي.',
+    achievements: [
+      'توقيع اتفاقية الامتياز النفطي التاريخية الأولى عام 1934 م لتبدأ عمليات الاستكشاف والتنقيب الكبرى.',
+      'اكتشاف النفط وتدفقه في بئر برقان رقم 1 عام 1938 م، ليعلن الكويت كأحد أضخم مكامن الطاقة عالمياً.',
+      'رعاية وتدشين تصدير أول شحنة نفط خام رسمية في عام 1946 م عبر ميناء الأحمدي (سنة الدشة النفطية).',
+      'تأسيس أول مجلس تشريعي منتخب عام 1938 م لتنظيم الشأن الإداري والسياسي للبلاد.'
+    ]
+  },
+  {
+    id: 'abdullah_salem',
+    name: 'الشيخ عبد الله السالم الصباح',
+    period: '1950 - 1965',
+    color: '#FF7F50',
+    bgGradient: 'from-orange-950 to-amber-950',
+    title: 'أبو الدستور، باني الاستقلال، ومؤسس النظام الديمقراطي والمجالس النيابية الحديثة.',
+    achievements: [
+      'إعلان استقلال دولة الكويت وإلغاء اتفاقية الحماية التاريخية في 19 يونيو 1961 م والبدء في بناء مؤسسات السيادة الوطنية.',
+      'صياغة واعتماد أول دستور حديث ومتكامل لدولة الكويت في 11 نوفمبر 1962 م كمنهج ديمقراطي فريد.',
+      'إجراء أول انتخابات برلمانية وتشكيل مجلس الأمة الكويتي الأول وافتتاح الجلسة الافتتاحية التاريخية عام 1963 م.',
+      'تأسيس الصندوق الكويتي للتنمية الاقتصادية العربية لدعم التنمية الشاملة في الدول الشقيقة والصديقة.'
+    ]
+  },
+  {
+    id: 'sabah_salem',
+    name: 'الشيخ صباح السالم الصباح',
+    period: '1965 - 1977',
+    color: '#8A2BE2',
+    bgGradient: 'from-purple-950 to-indigo-950',
+    title: 'راعي التنمية الاجتماعية والتعليم الأكاديمي الشامل وصانع الشراكات الدولية العميقة.',
+    achievements: [
+      'تأسيس وافتتاح جامعة الكويت عام 1966 م لتكون منارة التعليم العالي والبحث العلمي الأولى بالبلاد.',
+      'التوسع الهائل في تشييد المدن الإسكانية وتوفير الرعاية السكنية والصحية المجانية الشاملة للمواطنين.',
+      'افتتاح محطة الاتصالات الفضائية الأولى بمنطقة أم العيش لربط الكويت بشبكة البث والمعلومات الدولية.'
+    ]
+  },
+  {
+    id: 'jaber_ahmad',
+    name: 'الشيخ جابر الأحمد الصباح',
+    period: '1977 - 2006',
+    color: '#00BFFF',
+    bgGradient: 'from-blue-950 to-slate-900',
+    title: 'أمير القلوب، باني صندوق الأجيال، وحامي الشرعية وصاحب ملحمة التحرير وإعادة الإعمار.',
+    achievements: [
+      'تأسيس "صندوق احتياطي الأجيال القادمة" عام 1976 م كأكبر وأعرق الصناديق السيادية لتأمين مستقبل الأبناء.',
+      'قيادة ملحمة الصمود الدبلوماسي والسياسي لإعادة الشرعية الكويتية وتحرير الوطن بالكامل في 26 فبراير 1991 م.',
+      'رعاية وإنجاز ملحمة إطفاء الآبار النفطية الكويتية المحترقة (737 بئراً) في زمن قياسي بأيدي وسواعد الأبطال.',
+      'طرح مبكرة إنشاء مجلس التعاون لدول الخليج العربية وتعميق الشراكات الاقتصادية والأمنية الإقليمية.'
+    ]
+  },
+  {
+    id: 'sabah_ahmad',
+    name: 'الشيخ صباح الأحمد الصباح',
+    period: '2006 - 2020',
+    color: '#008080',
+    bgGradient: 'from-teal-950 to-slate-950',
+    title: 'قائد العمل الإنساني العالمي ورائد السياسة الدبلوماسية الوقائية والوساطة والتنمية الشاملة.',
+    achievements: [
+      'تسمية سموه من قبل الأمم المتحدة "قائداً للعمل الإنساني" ودولة الكويت "مركزاً للعمل الإنساني" عام 2014 م.',
+      'منح المرأة الكويتية كامل حقوقها السياسية (الترشح والانتخاب) للمرة الأولى وتعيين أولى الوزيرات والنائبات.',
+      'إطلاق الخطة التنموية الطموحة "رؤية كويت جديدة 2035" لتنويع مصادر الدخل وتعزيز مكانة البلاد اللوجستية.',
+      'رعاية وتدشين جسر الشيخ جابر الأحمد الصباح البحري لربط العاصمة بالصبية كأحد أطول الجسور المائية عالمياً.'
+    ]
+  },
+  {
+    id: 'nawaf_ahmad',
+    name: 'الشيخ نواف الأحمد الصباح',
+    period: '2020 - 2023',
+    color: '#D2691E',
+    bgGradient: 'from-amber-950 to-stone-900',
+    title: 'أمير العفو والتسامح، حريص على اللحمة الوطنية والاستقرار الداخلي ومكافحة الفساد.',
+    achievements: [
+      'إصدار مراسيم العفو الأميري لتعزيز المصالحة الوطنية وإرساء بيئة من التسامح والتلاحم الشعبي والسياسي.',
+      'توجيه بوصلة العمل الحكومي لتوطين العدالة وتطوير الأجهزة الرقابية ومكافحة البيروقراطية والفساد المالي.',
+      'تطوير وتوسيع نطاق تطبيق الخدمات الحكومية الرقمية عبر إطلاق منصة "سهل" لخدمة المواطنين والمقيمين.'
+    ]
+  },
+  {
+    id: 'meshal_ahmad',
+    name: 'الشيخ مشعل الأحمد الصباح',
+    period: '2023 - الحاضر',
+    color: '#B8860B',
+    bgGradient: 'from-yellow-950 to-neutral-950 border-amber-500/50',
+    title: 'قائد حقبة تصحيح المسار والإنتاجية العالية والمحاسبة والتحول الهيكلي نحو كويت المستقبل.',
+    achievements: [
+      'إطلاق حقبة جديدة من الحزم والشفافية وتصحيح المسار السياسي والتشريعي من أجل رفعة واستقرار الوطن.',
+      'تسريع تنفيذ المشاريع التنموية الكبرى لاسيما "ميناء مبارك الكبير الاستراتيجي" ومشاريع الطاقة النظيفة المتجددة.',
+      'تعميق الشراكات الأمنية والاقتصادية الخليجية والآسيوية والدولية لدعم تدفق الاستثمارات والتكنولوجيا المتطورة.',
+      'التأكيد على تمكين الكفاءات الوطنية الشابة وتطهير مفاصل الدولة الإدارية والمالية لضمان الإنتاجية المستدامة.'
+    ]
+  }
+];
+
+const STATIC_HISTORICAL_EVENTS = [
+  { year: 1899, title: "اتفاقية الحماية التاريخية لعام 1899", ruler: "mubarak", category: "سياسي", desc: "توقيع معاهدة الحماية التاريخية الشهيرة بين الشيخ مبارك الصباح (مبارك الكبير) والمندوب البريطاني لحماية أمن وسيادة الكويت واستقلال موانئها البحرية.", icon: "📜", image: "https://images.unsplash.com/photo-1599733589046-9b8308b5b50d?auto=format&fit=crop&w=600&q=80" },
+  { year: 1900, title: "ازدهار تجارة اللؤلؤ وبناء السفن الشراعية", ruler: "mubarak", category: "اقتصادي", desc: "بلوغ أسطول السفن الشراعية الكويتية (البوم والسنبوك) أوج نشاطه التجاري والملاحي لربط موانئ الخليج بالهند وشرق أفريقيا.", icon: "⛵", image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80" },
+  { year: 1901, title: "تأمين السيادة البرية وقصر السيف", ruler: "mubarak", category: "سياسي", desc: "تدشين المخطط الأول لبناء 'قصر السيف العامر' ليكون المقر الرسمي والسياسي لإدارة الحكم واللقاءات الدبلوماسية العليا للبلاد.", icon: "🏛️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1902, title: "معاهدة تنظيم الملاحة الإقليمية", ruler: "mubarak", category: "سياسي", desc: "ترسيخ السيطرة الملاحية والتجارية لموانئ الكويت وتنظيم تعرفة الرسوم الجمركية لجذب القوافل البحرية والبرية.", icon: "⚓", image: "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80" },
+  { year: 1903, title: "زيارة اللورد كرزون التاريخية للكويت", ruler: "mubarak", category: "سياسي", desc: "استقبال الشيخ مبارك الكبير للحاكم العام البريطاني اللورد كرزون في زيارة رسمية رسخت الأبعاد السياسية لدور الكويت في المنطقة.", icon: "🤝", image: "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=600&q=80" },
+  { year: 1904, title: "تأسيس أول مكتب بريد رسمي معتمد", ruler: "mubarak", category: "نهضة وتطوير", desc: "تأسيس الإدارة والخدمة البريدية الأولى رسمياً في الكويت لتسهيل حركة المراسلات التجارية والأوراق السياسية مع العالم الخارجي.", icon: "📮", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
+  { year: 1905, title: "تطوير موانئ العاصمة وصناعة السفن", ruler: "mubarak", category: "نهضة وتطوير", desc: "توسيع وتعميق فرضة مدينة الكويت لاستيعاب سفن النقل البحري العملاقة وتدعيم موانئ الصيانة الخشبية للبلاد.", icon: "🛠️", image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80" },
+  { year: 1906, title: "ترسيخ العملة الوطنية والتداول التجاري", ruler: "mubarak", category: "اقتصادي", desc: "تأمين وتنظيم تداول العملات المختلفة (كالروبية الهندية) في الأسواق الكويتية لضمان سلامة التعاملات التجارية للشركات والبحارة.", icon: "🪙", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1907, title: "تأسيس أول مستوصف وخدمات صحية", ruler: "mubarak", category: "اجتماعي", desc: "بدء تقديم الخدمات الطبية الأولية والصيدلانية في مدينة الكويت للوقاية من الأوبئة الموسمية وحماية سلامة البحارة والمزارعين.", icon: "🩺", image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80" },
+  { year: 1908, title: "توسيع الأسواق التاريخية وبناء القيصريات", ruler: "mubarak", category: "اقتصادي", desc: "توسيع الأسواق القديمة في قلب العاصمة وإنشاء 'سوق القيصرية' ليكون المركز الأبرز لتبادل السلع والتمور والأقمشة.", icon: "🛒", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80" },
+  { year: 1909, title: "بدء التخطيط لأول مدرسة نظامية حديثة", ruler: "mubarak", category: "ثقافي", desc: "إطلاق المبادرات الفكرية والأكاديمية الأولى من وجهاء الكويت لتأسيس صرح تعليمي نظامي يتجاوز الكتاتيب التقليدية.", icon: "📚", image: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1910, title: "معركة هدية التاريخية واللحمة الوطنية", ruler: "mubarak", category: "سياسي", desc: "خوض القوات الكويتية معركة هدية التاريخية دفاعاً عن كيان البلاد، مما عكس تكاتفاً شعبياً كبيراً والتفافاً حول مبارك الكبير.", icon: "⚔️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1911, title: "تأسيس المدرسة المباركية التاريخية", ruler: "mubarak", category: "ثقافي", desc: "افتتاح المدرسة المباركية، أول منارة نظامية وتعليمية وثقافية في تاريخ دولة الكويت بجهود تبرعات أهالي الكويت الكرام لتبدأ مسيرة النهضة العلمية.", icon: "🎓", image: "https://images.unsplash.com/photo-1510070112810-d4e9a46d9e91?auto=format&fit=crop&w=600&q=80" },
+  { year: 1912, title: "افتتاح المستشفى الأمريكاني الأول", ruler: "mubarak", category: "اجتماعي", desc: "تأسيس المستشفى الأمريكاني بمدينة الكويت على ساحل البحر، ليكون أول بناء يقدّم الخدمات الرعاية الصحية والعلاجية والطب الوقائي العصري للأهالي.", icon: "🏥", image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80" },
+  { year: 1913, title: "رسم أول خريطة تفصيلية للكويت", ruler: "mubarak", category: "نهضة وتطوير", desc: "إعداد الخريطة الرسمية والجغرافية الشاملة الأولى لحدود دولة الكويت وجزرها وموانئها البحرية لتوثيق الهوية الوطنية والسيادة الجغرافية.", icon: "🗺️", image: "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80" },
+  { year: 1914, title: "تأسيس أول محطة تلغراف لاسلكي", ruler: "mubarak", category: "نهضة وتطوير", desc: "ربط الكويت بأول جهاز تلغراف لاسلكي رسمي في قصر السيف العامر لتمكين الاتصال المباشر والتبادل التجاري البرقي السريع مع العالم الخارجي.", icon: "📡", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
+  { year: 1915, title: "انتقال الحكم للشيخ جابر المبارك", ruler: "jaber_mubarak", category: "سياسي", desc: "تولي الشيخ جابر المبارك الصباح مقاليد الحكم، ومواصلة عهد والده في تعزيز الأمان الداخلي والاستقرار المالي والتجاري رغم ظروف الحرب العالمية الأولى.", icon: "👑", image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=600&q=80" },
+  { year: 1916, title: "مؤتمر الصداقة الإقليمي وتأمين الحدود", ruler: "jaber_mubarak", category: "سياسي", desc: "استضافة الكويت لمؤتمر الصداقة وبناء التحالفات العشائرية والإقليمية لتثبيت السلم الأهلي والاستقرار التجاري والسياسي.", icon: "🤝", image: "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=600&q=80" },
+  { year: 1917, title: "تولي الشيخ سالم المبارك الحكم", ruler: "salem_mubarak", category: "سياسي", desc: "تولي الشيخ سالم المبارك الصباح مقاليد الحكم، والبدء في إجراء تحسينات تنموية كبيرة وتخفيض الرسوم والضرائب الجمركية لدعم تجار البحر والبر.", icon: "👑", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80" },
+  { year: 1918, title: "تنشيط التبادل التجاري وخفض التعرفة الجمركية", ruler: "salem_mubarak", category: "اقتصادي", desc: "إصدار مرسوم بتخفيض الضرائب والتعرفة الجمركية على الواردات البحرية والبرية لتنشيط حركة الأسواق وحرية التجارة والعبور.", icon: "🪙", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1919, title: "إقامة نقاط الحراسة الأمنية حول العاصمة", ruler: "salem_mubarak", category: "سياسي", desc: "إنشاء نقاط مراقبة وحراسة برية متكاملة حول مدينة الكويت لضمان رصد التحركات الخارجية وحماية القوافل والأسواق الأهلية.", icon: "🛡️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1920, title: "بناء السور الثالث ومعركة الجهراء", ruler: "salem_mubarak", category: "سياسي", desc: "تشييد سور الكويت الثالث الطيني التاريخي لحماية العاصمة في زمن قياسي (شهرين فقط) لحماية مدينة الكويت وتماسك الجبهة الداخلية، والذود في معركة الجهراء.", icon: "⚔️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1921, title: "تولي الشيخ أحمد الجابر وإنشاء الأحمدية", ruler: "ahmad_jaber", category: "ثقافي", desc: "تولي الشيخ أحمد الجابر الصباح مقاليد الحكم، وتأسيس المدرسة الأحمدية لتعليم اللغات والعلوم العصرية كخطوة استباقية للتطور المعرفي بالبلاد.", icon: "🏛️", image: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=80" },
+  { year: 1922, title: "معاهدة العقير التاريخية لرسم الحدود", ruler: "ahmad_jaber", category: "سياسي", desc: "توقيع بروتوكول معاهدة العقير الشهيرة لتحديد ورسم الحدود الجغرافية الرسمية والمنطقة المحايدة لدولة الكويت بمشاركة المندوبين الإقليميين.", icon: "📜", image: "https://images.unsplash.com/photo-1599733589046-9b8308b5b50d?auto=format&fit=crop&w=600&q=80" },
+  { year: 1923, title: "تنظيم المسح الجيولوجي الأول للمياه العذبة", ruler: "ahmad_jaber", category: "نهضة وتطوير", desc: "إرسال بعثات استكشاف علمية للبحث عن مكامن المياه الجوفية العذبة لتأمين الاحتياجات الحياتية المتزايدة للمواطنين.", icon: "🚰", image: "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80" },
+  { year: 1924, title: "تأسيس المكتبة الأهلية الثقافية الأولى", ruler: "ahmad_jaber", category: "ثقافي", desc: "إنشاء أول مكتبة عامة في تاريخ الكويت لحفظ المخطوطات والكتب وجذب المفكرين والشعراء لنشر الوعي الثقافي والوطني.", icon: "📖", image: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1925, title: "دخول الطيران المدني واستطلاع سماء الكويت", ruler: "ahmad_jaber", category: "نهضة وتطوير", desc: "هبوط أول طائرة استطلاع بريطانية على أراضي الكويت، لتبدأ معها مرحلة التخطيط الميداني لإنشاء مدرج الهبوط والمطارات الوطنية.", icon: "✈️", image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=600&q=80" },
+  { year: 1926, title: "تنظيم أول نظام بريد وطني داخلي", ruler: "ahmad_jaber", category: "نهضة وتطوير", desc: "تحديث وتوسيع شبكة صناديق البريد في المحافظات والموانئ وتنظيم طوابع التداول الرسمية المعتمدة لدولة الكويت.", icon: "📮", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
+  { year: 1927, title: "بناء قصر السيف المرمم والمحدث", ruler: "ahmad_jaber", category: "نهضة وتطوير", desc: "توسيع وتطوير قصر السيف ليضم مكاتب وسكرتارية الدولة الحديثة لمواكبة التغير الإداري المستقبلي للبلاد.", icon: "🏛️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1928, title: "تأسيس النادي الأدبي وملتقيات التنوير", ruler: "ahmad_jaber", category: "ثقافي", desc: "تأسيس صالون أدبي وثقافي يجمع رجالات العلم والأدب من داخل وخارج الكويت لمناقشة المستجدات العلمية.", icon: "📚", image: "https://images.unsplash.com/photo-1510070112810-d4e9a46d9e91?auto=format&fit=crop&w=600&q=80" },
+  { year: 1929, title: "أزمة الكساد العظيم وتأمين الأمن المعيشي", ruler: "ahmad_jaber", category: "اقتصادي", desc: "صمود الكويت في وجه أزمة الكساد العالمي ومقاومة انهيار أسعار تداول اللؤلؤ الطبيعي بتعويض الزراعة وركوب البحر.", icon: "🪙", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1930, title: "تأسيس أول مجلس بلدي رسمي بالبلاد", ruler: "ahmad_jaber", category: "سياسي", desc: "تأسيس بلدية الكويت واختيار أول مجلس بلدي منتخب لتنظيم شؤون التنظيم والتحضر والصحة العامة للأسواق والمنازل.", icon: "🗳️", image: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80" },
+  { year: 1931, title: "إصدار أول طابع بريدي يحمل اسم الكويت", ruler: "ahmad_jaber", category: "نهضة وتطوير", desc: "بدء التداول الدولي بأول طوابع ومراسلات بريدية تحمل رسمياً اسم وشعار إمارة الكويت لإثبات السيادة المعترف بها.", icon: "📮", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
+  { year: 1932, title: "افتتاح أول مدرسة نظامية للبنات", ruler: "ahmad_jaber", category: "ثقافي", desc: "إطلاق المبادرات الأولى لتعليم الإناث في فصول دراسية نظامية متكاملة لضمان تمكين المرأة الكويتية وبناء جيل متسلح بالعلم.", icon: "🎓", image: "https://images.unsplash.com/photo-1510070112810-d4e9a46d9e91?auto=format&fit=crop&w=600&q=80" },
+  { year: 1933, title: "تطوير مستودعات وموانئ الوقود البحري", ruler: "ahmad_jaber", category: "نهضة وتطوير", desc: "توسيع وتعميق فرضة الفحم والموانئ التموينية لإعادة تزويد السفن العابرة للخليج بالمواد الأساسية اللازمة للرحلات الشاقة.", icon: "⚓", image: "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80" },
+  { year: 1934, title: "توقيع أول اتفاقية امتياز نفطي", ruler: "ahmad_jaber", category: "اقتصادي", desc: "توقيع الشيخ أحمد الجابر الصباح لاتفاقية التنقيب والامتياز الكبرى مع شركة نفط الكويت المحدودة، لتنطلق أولى رحلات البحث البترولية التاريخية.", icon: "🛢️", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1935, title: "إطلاق البعثة الطبية والصحية الدولية الأولى", ruler: "ahmad_jaber", category: "اجتماعي", desc: "استقطاب أطباء متخصصين للقضاء الشامل على الأوبئة التاريخية وتحديث أجهزة الرقابة الصحية والوقائية على طول السواحل والمنافذ البرية.", icon: "🏥", image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80" },
+  { year: 1936, title: "تأسيس مجلس المعارف الوطني الأول", ruler: "ahmad_jaber", category: "ثقافي", desc: "تأسيس أول هيئة رسمية لتوجيه وتوحيد التعليم والمدارس واستقطاب معلمين أكاديميين عرب لوضع المناهج الحديثة لتعليم البنين والبنات.", icon: "📚", image: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1937, title: "بدء عمليات حفر البئر الاستكشافي الأول بالبحرة", ruler: "ahmad_jaber", category: "اقتصادي", desc: "تدشين آليات الحفر والتنقيب الثقيلة في حقل البحرة لتبدأ رحلة التأكيد العلمي على ثراء مكامن الطاقة الكويتية تحت الرمال.", icon: "🔥", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80" },
+  { year: 1938, title: "اكتشاف بئر برقان رقم 1 الأسطوري", ruler: "ahmad_jaber", category: "اقتصادي", desc: "تدفق النفط لأول مرة في تاريخ الكويت من بئر برقان رقم 1، معلناً اكتشاف أضخم مكمن نفطي بري متكامل بالعالم، وتأسيس المجلس التشريعي الأول.", icon: "🔥", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80" },
+  { year: 1939, title: "تأسيس دائرة الأمن العام والشرطة الوطنية", ruler: "ahmad_jaber", category: "سياسي", desc: "تأسيس دائرة للأمن الداخلي والشرطة برئاسة الشيخ علي الخليفة لتأمين الأسواق والشركات الأجنبية وحقول النفط الناشئة.", icon: "🛡️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1940, title: "تجميد تصدير النفط مؤقتاً بسبب الحرب العالمية", ruler: "ahmad_jaber", category: "سياسي", desc: "توقف مؤقت لأعمال الحفر والإنشاءات النفطية وتأمين الآبار المكتشفة لحمايتها من التداعيات والضربات العسكرية للحرب العالمية الثانية.", icon: "🛡️", image: "https://images.unsplash.com/photo-1599733589046-9b8308b5b50d?auto=format&fit=crop&w=600&q=80" },
+  { year: 1941, title: "تدشين أول محطة توليد كهرباء صغيرة", ruler: "ahmad_jaber", category: "نهضة وتطوير", desc: "إدخال الطاقة الكهربائية والإنارة لقصر السيف العامر وبعض الأسواق والمستشفيات للمرة الأولى بالاعتماد على المولدات الثقيلة.", icon: "🔌", image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80" },
+  { year: 1942, title: "أزمة التموين وسنوات البطاقة التموينية الأولى", ruler: "ahmad_jaber", category: "اقتصادي", desc: "تأسيس نظام البطاقة التموينية لتوزيع السلع الأساسية والمواد الغذائية لضمان صمود العائلات الكويتية أمام شح الاستيراد العالمي.", icon: "🪙", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80" },
+  { year: 1943, title: "تنظيم أول بعثة تعليمية كويتية للخارج", ruler: "ahmad_jaber", category: "ثقافي", desc: "إرسال أولى الدفعات المتفوقة من المعلمين والطلبة الكويتيين للجامعات العربية المرموقة لكسب العلوم العصرية ونقلها للوطن.", icon: "🎓", image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=600&q=80" },
+  { year: 1944, title: "تحديث مستشفى الإرسالية وتطوير البنية العلاجية", ruler: "ahmad_jaber", category: "اجتماعي", desc: "افتتاح مبان إضافية وأقسام للولادة والجراحة بمستشفى الإرسالية الأمريكية لمواجهة تحديات الرعاية الطبية للأطفال والمواطنين.", icon: "🏥", image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80" },
+  { year: 1945, title: "انتهاء الحرب العالمية والتحضير لانطلاقة البترول", ruler: "ahmad_jaber", category: "سياسي", desc: "إعلان انتهاء الحرب وبدء التعبئة الفورية للآليات وعودة المهندسين لتسريع إنجاز ميناء ومستودعات التصدير النفطي بالأحمدي.", icon: "🕊️", image: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=600&q=80" },
+  { year: 1946, title: "تصدير أول شحنة نفط خام رسمية", ruler: "ahmad_jaber", category: "اقتصادي", desc: "رعاية وتدشين تصدير أول شحنة نفط خام رسمية في عام 1946 م عبر ميناء الأحمدي (سنة الدشة النفطية) بمشاركة الأمير ورجالات الدولة.", icon: "🚢", image: "https://images.unsplash.com/photo-1494412519320-aa613dfb7738?auto=format&fit=crop&w=600&q=80" },
+  { year: 1947, title: "تأسيس أول مصنع لتقطير مياه البحر", ruler: "ahmad_jaber", category: "نهضة وتطوير", desc: "تدشين أول مصنع متكامل من نوعه بالشرق الأوسط لتقطير مياه البحر بميناء الأحمدي لمواجهة العجز المائي ودعم الزراعة.", icon: "🚰", image: "https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80" },
+  { year: 1948, title: "إطلاق وتشييد مدينة الأحمدي التنموية", ruler: "ahmad_jaber", category: "نهضة وتطوير", desc: "بدء التخطيط والتشييد المعماري المنظم لمدينة الأحمدي البترولية لتكون مقراً عصرياً لشركات وموظفي الطاقة والنفط بالبلاد.", icon: "🏗️", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80" },
+  { year: 1949, title: "افتتاح أول مدرسة ثانوية رسمية للبنين", ruler: "ahmad_jaber", category: "ثقافي", desc: "افتتاح ثانوية الشويخ العريقة كأبرز معهد أكاديمي لتخريج الكوادر التي قادت وبنت كويت الاستقلال والدستور.", icon: "🎓", image: "https://images.unsplash.com/photo-1510070112810-d4e9a46d9e91?auto=format&fit=crop&w=600&q=80" },
+  { year: 1950, title: "تولي الشيخ عبد الله السالم الصباح الحكم", ruler: "abdullah_salem", category: "سياسي", desc: "تولي الشيخ عبد الله السالم الصباح مقاليد الحكم، وبداية حقبة بناء الكويت الحديثة والدستور والسيادة واستثمار فوائض النفط بالتنمية.", icon: "👑", image: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80" },
+  { year: 1951, title: "إصدار قانون تنظيم الخدمة المدنية وجهاز الإدارة", ruler: "abdullah_salem", category: "سياسي", desc: "تأسيس الهيكل الإداري والخدمي الرسمي لتنظيم دوائر الدولة وربط الوظائف بالكفاءة وحفظ حقوق العاملين والمواطنين.", icon: "📜", image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80" },
+  { year: 1952, title: "تحديث وتطوير شبكات المياه والكهرباء الكبرى", ruler: "abdullah_salem", category: "نهضة وتطوير", desc: "افتتاح محطة الشويخ لتوليد الطاقة وتقطير المياه بقدرات عملاقة لمواكبة التوسع السكاني والعمراني غير المسبوق بالبلاد.", icon: "⚡", image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80" },
+  { year: 1953, title: "افتتاح أول مصرف تجاري كويتي بالكامل", ruler: "abdullah_salem", category: "اقتصادي", desc: "تأسيس بنك الكويت الوطني ليكون أول مؤسسة مصرفية ومالية وطنية بالكامل تدير رؤوس الأموال ومشاريع التنمية الذاتية.", icon: "🏦", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1954, title: "تأسيس الخطوط الجوية الكويتية للتطوير", ruler: "abdullah_salem", category: "نهضة وتطوير", desc: "تأسيس الناقل الوطني الجوي 'الخطوط الجوية الكويتية' كصرح سيادي يربط الكويت برحلات مباشرة مع مختلف العواصم والبلدان.", icon: "✈️", image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=600&q=80" },
+  { year: 1955, title: "تأسيس شركة مطاحن الدقيق والأمن الغذائي", ruler: "abdullah_salem", category: "نهضة وتطوير", desc: "إنشاء الشركة الوطنية للمطاحن لتأمين الغذاء وتوفير الدقيق والمواد الاستهلاكية الأساسية لجميع سكان الكويت بكفاءة عالية.", icon: "🌾", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80" },
+  { year: 1956, title: "تحديث الهيكل الأمني وقوة الدفاع والجيش", ruler: "abdullah_salem", category: "سياسي", desc: "تحديث وتجهيز طلائع الجيش الكويتي بالعتاد والكوادر الوطنية المدربة لحماية الحدود الجغرافية للبلاد من الأخطار الخارجية.", icon: "🛡️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1957, title: "بدء هدم السور الثالث وتوسيع العاصمة", ruler: "abdullah_salem", category: "نهضة وتطوير", desc: "إصدار مرسوم بهدم السور الثالث الطيني لفتح المجال أمام تمدد المدينة وبناء المجمعات الحديثة والطرق الدائرية الواسعة.", icon: "🏗️", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80" },
+  { year: 1958, title: "إصدار مجلة العربي التنويرية الرائدة", ruler: "abdullah_salem", category: "ثقافي", desc: "إطلاق مجلة العربي الثقافية والفكرية برئاسة الدكتور أحمد زكي، لتكون سفير الكويت الثقافي ونبض التنوير بالشرق الأوسط.", icon: "📖", image: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1959, title: "تعديل وإقرار قانون الجنسية الكويتية", ruler: "abdullah_salem", category: "سياسي", desc: "صياغة وإقرار المرسوم الأميري المنظم للحصول على الجنسية الكويتية وتثبيت السجلات والقيود الرسمية للهوية الوطنية.", icon: "📜", image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80" },
+  { year: 1960, title: "تأسيس النقد الكويتي وإصدار الدينار", ruler: "abdullah_salem", category: "اقتصادي", desc: "تأسيس مجلس النقد الكويتي وإصدار العملة الوطنية 'الدينار الكويتي' ليكون من أقوى وأكثر العملات استقراراً بالأسواق المالية.", icon: "🪙", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1961, title: "إعلان الاستقلال ورفع العلم الوطني الجديد", ruler: "abdullah_salem", category: "سياسي", desc: "توقيع وثيقة الاستقلال وإلغاء معاهدة الحماية التاريخية لعام 1899، ورفع علم الكويت الجديد بمدينة السيف وبدء عهد السيادة.", icon: "🇰🇼", image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=600&q=80" },
+  { year: 1962, title: "المصادقة التاريخية على دستور الكويت", ruler: "abdullah_salem", category: "سياسي", desc: "صياغة واعتماد أول دستور حديث ومتكامل لدولة الكويت في 11 نوفمبر 1962 م كمنهج ديمقراطي فريد يرسم مستقبل الحريات.", icon: "📜", image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80" },
+  { year: 1963, title: "أول انتخابات برلمانية والانضمام للأمم المتحدة", ruler: "abdullah_salem", category: "سياسي", desc: "إجراء انتخابات الفصل التشريعي الأول لمجلس الأمة، وحصول الكويت على الاعتراف الشامل كعضو بالأمم المتحدة.", icon: "🇺🇳", image: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80" },
+  { year: 1964, title: "إقرار قوانين الرقابة وحماية الأملاك العامة", ruler: "abdullah_salem", category: "سياسي", desc: "إصدار حزمة من القوانين والتشريعات الصارمة لحماية مقدرات وثروات الدولة والأراضي وتنظيم العقود الإدارية والمالية.", icon: "⚖️", image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80" },
+  { year: 1965, title: "تولي الشيخ صباح السالم الصباح الحكم", ruler: "sabah_salem", category: "سياسي", desc: "تولي الشيخ صباح السالم الصباح مقاليد الحكم، وبداية حقبة تنموية رائدة ركزت على رفاهية المواطن والتعليم الأكاديمي الشامل.", icon: "👑", image: "https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?auto=format&fit=crop&w=600&q=80" },
+  { year: 1966, title: "تأسيس وافتتاح جامعة الكويت الرائدة", ruler: "sabah_salem", category: "ثقافي", desc: "تأسيس وافتتاح جامعة الكويت لتكون المنارة الأكاديمية الأولى في البلاد وتخريج الأجيال في مختلف المجالات والعلوم.", icon: "🎓", image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=600&q=80" },
+  { year: 1967, title: "إرسال لواء اليرموك للدفاع عن القضايا العربية", ruler: "sabah_salem", category: "سياسي", desc: "مشاركة قوات لواء اليرموك التابع للجيش الكويتي في الجبهة المصرية تجسيداً لدور الكويت في الدفاع عن القضايا القومية.", icon: "🛡️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1968, title: "تأسيس الهيئة العامة للجنوب والخليج العربي", ruler: "sabah_salem", category: "سياسي", desc: "تأسيس هيئة وطنية لتقديم الدعم التنموي والطبي والتعليمي للدول العربية الشقيقة وبناء المدارس والمستوصفات والمستشفيات.", icon: "🏥", image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=600&q=80" },
+  { year: 1969, title: "تدشين وافتتاح مصفاة الشعيبة النفطية", ruler: "sabah_salem", category: "اقتصادي", desc: "افتتاح أول مصفاة لتكرير النفط الخام ذات طاقة إنتاجية كبرى مخصصة للتصدير لدول العالم بجودة عالمية وتقنيات فريدة.", icon: "🏭", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80" },
+  { year: 1970, title: "تطوير خدمات الرعاية السكنية وبناء البيوت للشباب", ruler: "sabah_salem", category: "اجتماعي", desc: "التوسع السكني الكبر بتخصيص وبناء آلاف الوحدات السكنية الحديثة لتوفير الرفاهية والأمن المعيشي للأسر الشابة.", icon: "🏠", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80" },
+  { year: 1971, title: "تأسيس الشركة الوطنية للصناعات الكيماوية", ruler: "sabah_salem", category: "اقتصادي", desc: "إطلاق مصانع البتروكيماويات والأسمدة لتحويل الغاز والمخلفات النفطية إلى منتجات ذات قيمة تصديرية واستثمارية كبرى.", icon: "🧪", image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80" },
+  { year: 1972, title: "تأسيس وإصدار جريدة القبس الكويتية", ruler: "sabah_salem", category: "ثقافي", desc: "انطلاق صحيفة القبس لتكون منبراً للإعلام المستقل والتنوير الصحفي وتعبر عن نبض الشارع والمثقفين بحرية ومهنية.", icon: "📰", image: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1973, title: "مشاركة الجيش الكويتي في حرب أكتوبر المجيدة", ruler: "sabah_salem", category: "سياسي", desc: "إرسال قوة الجهراء واليرموك الكويتية للمشاركة العسكرية المباشرة في الجبهتين المصرية والسورية للذود عن الأرض العربية.", icon: "⚔️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1974, title: "اتفاقية الاستحواذ والسيطرة الكاملة على النفط", ruler: "sabah_salem", category: "اقتصادي", desc: "توقيع اتفاقية زيادة حصة الدولة بنسبة 60% في أصول شركة نفط الكويت كخطوة تمهيدية للتأميم الكامل وإرساء السيادة المطلقة.", icon: "🛢️", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1975, title: "افتتاح محطة أم العيش للاتصالات الفضائية", ruler: "sabah_salem", category: "نهضة وتطوير", desc: "افتتاح محطة الاتصالات الفضائية الأولى بمنطقة أم العيش لربط الكويت بشبكة البث والمعلومات والبيانات الدولية الفورية.", icon: "📡", image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80" },
+  { year: 1976, title: "تأسيس صندوق احتياطي الأجيال القادمة", ruler: "sabah_salem", category: "اقتصادي", desc: "تأسيس الصندوق السيادي الأول من نوعه عالمياً باقتطاع 10% من إيرادات النفط سنوياً لتأمين مستقبل ورفاهية الأجيال القادمة.", icon: "🪙", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1977, title: "تولي الشيخ جابر الأحمد الصباح مقاليد الحكم", ruler: "jaber_ahmad", category: "سياسي", desc: "تولي الشيخ جابر الأحمد الصباح مقاليد الحكم، وبدء حقبة التطور الهيكلي والعمراني والريادة المالية والدبلوماسية الإقليمية.", icon: "👑", image: "https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?auto=format&fit=crop&w=600&q=80" },
+  { year: 1978, title: "إقرار نظام المساعدات الاجتماعية الشامل للمواطنين", ruler: "jaber_ahmad", category: "اجتماعي", desc: "إطلاق حزمة واسعة من المخصصات والضمانات المعيشية لتقديم الرعاية للأرامل والأيتام وكبار السن لمستويات رفاه متكاملة.", icon: "🤝", image: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=600&q=80" },
+  { year: 1979, title: "تدشين وافتتاح صرح أبراج الكويت الأيقونية", ruler: "jaber_ahmad", category: "نهضة وتطوير", desc: "افتتاح أبراج الكويت الثلاثة على ساحل الخليج كتحفة هندسية فريدة ورمز للنهضة والتطور والسيادة المعمارية للبلاد.", icon: "🗼", image: "https://images.unsplash.com/photo-1580674230410-b9979d50b4ec?auto=format&fit=crop&w=600&q=80" },
+  { year: 1980, title: "تأسيس مؤسسة البترول الكويتية لتنظيم الطاقة", ruler: "jaber_ahmad", category: "اقتصادي", desc: "تأسيس الكيان الشامل المنسق للشركات النفطية والإنتاج والتكرير والتصدير تحت إدارة وطنية ومظلة استراتيجية موحدة.", icon: "🛢️", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1981, title: "تأسيس مجلس التعاون لدول الخليج العربية", ruler: "jaber_ahmad", category: "سياسي", desc: "دور ريادي للكويت بقيادة جابر الأحمد في إطلاق وتأسيس مجلس التعاون لتعميق الشراكات والأواصر الأمنية والاقتصادية الخليجية.", icon: "🤝", image: "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=600&q=80" },
+  { year: 1982, title: "أزمة المناخ المالية وتنظيم أسواق الأوراق", ruler: "jaber_ahmad", category: "اقتصادي", desc: "مواجهة واحتواء أزمة انهيار البورصة غير الرسمية (سوق المناخ) بتأسيس صناديق التسوية وحماية صغار المستثمرين.", icon: "📉", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80" },
+  { year: 1983, title: "تأسيس معهد الكويت للأبحاث العلمية", ruler: "jaber_ahmad", category: "ثقافي", desc: "تطوير الصرح البحثي لدعم مجالات تحلية المياه والطبيعة والزراعة الصحراوية ودراسات البيئة الكويتية المستدامة.", icon: "🔬", image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80" },
+  { year: 1984, title: "افتتاح ميناء مبارك الكبير للتصدير المحدث", ruler: "jaber_ahmad", category: "اقتصادي", desc: "تحديث وتوسيع موانئ ومحطات الشحن والترانزيت البحري في الشعيبية والدوحة لدعم تدفق الصادرات والواردات الوطنية.", icon: "⚓", image: "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80" },
+  { year: 1985, title: "النجاة من محاولة الاغتيال الآثمة للأمير", ruler: "jaber_ahmad", category: "سياسي", desc: "نجاة سمو الأمير الشيخ جابر الأحمد من محاولة اغتيال آثمة تعرض لها موكبه الرسمي، مما فجر موجة التفاف وتلاحم شعبي منقطع النظير.", icon: "🛡️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1986, title: "افتتاح وتدشين صرح المسجد الكبير بالعاصمة", ruler: "jaber_ahmad", category: "ثقافي", desc: "افتتاح صرح المسجد الكبير ليكون تحفة فنية ومعمارية إسلامية وصرحاً دينياً وثقافياً رائداً بالمنطقة يتسع لآلاف المصلين.", icon: "🕌", image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80" },
+  { year: 1987, title: "استضافة مؤتمر القمة الإسلامي الخامس بالبلاد", ruler: "jaber_ahmad", category: "سياسي", desc: "استضافة قادة وممثلي العالم الإسلامي في مؤتمر قمة تاريخي نجح في توحيد الرؤى وتأكيد دور الكويت كمنبر للسلام والوساطة.", icon: "🇺🇳", image: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=600&q=80" },
+  { year: 1988, title: "تحديث وتوسيع شبكة السكك الحديد والأنفاق المقترحة", ruler: "jaber_ahmad", category: "نهضة وتطوير", desc: "إصدار المخطط التوجيهي الثالث لتوسعة الطرق السريعة وبناء الجسور والأنفاق لتيسير الحركة الميدانية لنمو السكان العالي.", icon: "🛣️", image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=600&q=80" },
+  { year: 1989, title: "تأسيس الهيئة العامة لتقدير التعويضات والتنمية", ruler: "jaber_ahmad", category: "سياسي", desc: "إرساء النظم القانونية لحقوق المواطنين والشركات وإعادة هيكلة الملفات الاستثمارية والتجارية لمواكبة التغيرات الدولية السريعة.", icon: "⚖️", image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80" },
+  { year: 1990, title: "الغزو العراقي الغاشم وملحمة الصمود البطولي", ruler: "jaber_ahmad", category: "سياسي", desc: "تعرض الكويت للغزو الغاشم، وصمود وتلاحم الشعب البطل بالداخل والخارج والتفافه التاريخي حول قيادته لرفض الاحتلال.", icon: "🛡️", image: "https://images.unsplash.com/photo-1508847154043-be12a3b4d69e?auto=format&fit=crop&w=600&q=80" },
+  { year: 1991, title: "تحرير الكويت وإطفاء الآبار النفطية المحترقة", ruler: "jaber_ahmad", category: "سياسي", desc: "تحرير الوطن بالكامل في 26 فبراير بفضل تضحيات الأبطال والتحالف الدولي، وإنجاز ملحمة إطفاء 737 بئراً نفطياً مشتعلاً بأيدي الكوادر الوطنية.", icon: "✌️", image: "https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&w=600&q=80" },
+  { year: 1992, title: "بدء حقبة إعادة الإعمار الكبرى وإصلاح المدن", ruler: "jaber_ahmad", category: "نهضة وتطوير", desc: "مجهود وطني جبار لإعادة تشغيل محطات الكهرباء والمياه وإصلاح الموانئ والبنى التحتية المتضررة بمليارات الدنانير في زمن قياسي.", icon: "🏗️", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80" },
+  { year: 1993, title: "تنفيذ مشروع الخندق والستار الأمني لحفظ الحدود", ruler: "jaber_ahmad", category: "سياسي", desc: "إقامة السياج الأمني العازل والمتطور تكنولوجياً على طول الحدود الشمالية والجنوبية لضمان أمن وحفظ تراب وسيادة البلاد.", icon: "🛡️", image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=600&q=80" },
+  { year: 1994, title: "تأهيل البيئة البرية والبحرية ومكافحة التلوث", ruler: "jaber_ahmad", category: "اجتماعي", desc: "إطلاق مشروعات معالجة البحيرات النفطية ومكافحة الترسبات السامة على الشواطئ لإعادة الحياة الفطرية الطبيعية للخليج.", icon: "🌱", image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80" },
+  { year: 1995, title: "تأسيس الهيئة العامة للبيئة الكويتية", ruler: "jaber_ahmad", category: "سياسي", desc: "تأسيس جهاز رقابي وقانوني متكامل لمتابعة وحفظ الموارد الطبيعية ومراقبة ملوثات الهواء وحظر الاستغلال العشوائي للأراضي.", icon: "⚖️", image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80" },
+  { year: 1996, title: "تدشين وافتتاح المنطقة الحرة بميناء الشويخ", ruler: "jaber_ahmad", category: "اقتصادي", desc: "إطلاق الميناء والمنطقة الحرة لجذب الاستثمارات وتسهيل الإعفاءات الضريبية والجمركية لتنشيط حركة الترانزيت العالمي.", icon: "⚓", image: "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80" },
+  { year: 1997, title: "ربط الكويت بالإنترنت والتحول المعرفي الأول", ruler: "jaber_ahmad", category: "نهضة وتطوير", desc: "دخول خدمات الإنترنت الفورية والشبكات السلكية لربط القطاعات والجامعات والبنوك بقنوات التبادل المعلوماتية العالمية المعاصرة.", icon: "💻", image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
+  { year: 1998, title: "افتتاح وتشييد المجمع العلمي والثقافي بالبلاد", ruler: "jaber_ahmad", category: "ثقافي", desc: "افتتاح المركز العلمي الكويتي العريق ذو الواجهة البحرية، ليضم قاعات عرض الأحياء البحرية والمجسمات البيئية والتكنولوجية المتقدمة.", icon: "🐳", image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80" },
+  { year: 1999, title: "تنظيم وحفظ وتوثيق الأرشيف الوطني التاريخي", ruler: "jaber_ahmad", category: "ثقافي", desc: "إطلاق صروح ودوائر الحفظ الأرشيفي والوثائقي لتاريخ آل الصباح الكرام ومجالس الحكم المتعاقبة لحماية التراث الوطني.", icon: "📖", image: "https://images.unsplash.com/photo-1599733589046-9b8308b5b50d?auto=format&fit=crop&w=600&q=80" },
+  { year: 2000, title: "دخول الألفية الجديدة والتكامل التقني والمالي", ruler: "jaber_ahmad", category: "نهضة وتطوير", desc: "دخول اليوبيل الألفي للقرن الجديد بخطط وبرامج طموحة للتحول التكنولوجي وتحديث المعاملات والسياسات المالية للبلاد.", icon: "🚀", image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=600&q=80" },
+  { year: 2014, title: "تسمية الكويت مركزاً إنسانياً عالمياً والأمير قائداً", ruler: "sabah_ahmad", category: "سياسي", desc: "تكريم سمو الأمير الشيخ صباح الأحمد من قبل الأمم المتحدة كقائد للعمل الإنساني ودولة الكويت كمركز للعمل الإنساني لدورها الرائد.", icon: "🕊️", image: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=600&q=80" },
+  { year: 2019, title: "افتتاح جسر الشيخ جابر الأحمد الصباح البحري", ruler: "sabah_ahmad", category: "نهضة وتطوير", desc: "تدشين رابع أطول جسر بحري بالعالم لربط العاصمة بالصبية ومدينة الحرير الاقتصادية المستقبلية كتحفة لوجستية.", icon: "🌉", image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=600&q=80" },
+  { year: 2020, title: "تولي الشيخ نواف الأحمد الصباح (أمير العفو)", ruler: "nawaf_ahmad", category: "سياسي", desc: "تولي سموه مقاليد الحكم وإصداره مراسيم العفو التاريخية لترسيخ التلاحم والمصالحة الوطنية والاستقرار السياسي.", icon: "👑", image: "https://images.unsplash.com/photo-1453733190148-c44698c265f8?auto=format&fit=crop&w=600&q=80" },
+  { year: 2023, title: "تولي الشيخ مشعل الأحمد الصباح مقاليد الحكم", ruler: "meshal_ahmad", category: "سياسي", desc: "تولي سموه قيادة حقبة تصحيح المسار السياسي ومحاسبة التسيب والفساد وتفعيل الإنتاجية العالية لصالح رفعة الوطن.", icon: "👑", image: "https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=600&q=80" },
+  { year: 2024, title: "تطبيق منصة سهل والتحول الرقمي الشامل", ruler: "meshal_ahmad", category: "نهضة وتطوير", desc: "تحقيق نجاح باهر ومقاييس استثنائية للتطبيق الحكومي 'سهل' للقضاء الكلي على البيروقراطية والمعاملات الورقية.", icon: "📱", image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=600&q=80" },
+  { year: 2025, title: "تسريع تشييد ميناء مبارك الكبير التنموي", ruler: "meshal_ahmad", category: "اقتصادي", desc: "رعاية وتسريع تنفيذ الأعمال الإنشائية في ميناء مبارك الكبير بجزيرة بوبيان ليكون العصب التجاري الرابط مع خطوط السكك العالمية.", icon: "⚓", image: "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80" },
+  { year: 2026, title: "كويت المستقبل والذكاء الاصطناعي الأخضر", ruler: "meshal_ahmad", category: "نهضة وتطوير", desc: "البدء بدمج الحوسبة السحابية ومصانع الطاقة المتجددة في الشقايا لإرساء ملامح الاقتصاد المعرفي الصديق للبيئة لجيل الغد.", icon: "🔋", image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80" }
+];
+
+const MAP_LOCATIONS = [
+  { name: "قصر السيف", year: "1901", desc: "المقر الرسمي للحكم واللقاءات الدبلوماسية.", icon: "🏛️" },
+  { name: "المدرسة المباركية", year: "1911", desc: "أول مدرسة نظامية في تاريخ الكويت.", icon: "🎓" },
+  { name: "أبراج الكويت", year: "1979", desc: "رمز النهضة المعمارية الحديثة.", icon: "🗼" },
+  { name: "ميناء مبارك الكبير", year: "2025", desc: "أضخم مشروع لوجستي استراتيجي.", icon: "⚓" },
+  { name: "المسجد الكبير", year: "1986", desc: "صرح معماري إسلامي ثقافي.", icon: "🕌" }
+];
+
+const QUIZ_QUESTIONS = [
+  { question: "في أي عام تم توقيع اتفاقية الحماية التاريخية مع بريطانيا؟", options: ["1899", "1911", "1920", "1938"], correct: 0, explanation: "وقعت اتفاقية الحماية التاريخية في عام 1899 م في عهد الشيخ مبارك الكبير." },
+  { question: "من هو 'أمير القلوب' الذي قاد ملحمة التحرير؟", options: ["الشيخ عبد الله السالم", "الشيخ صباح السالم", "الشيخ جابر الأحمد", "الشيخ صباح الأحمد"], correct: 2, explanation: "الشيخ جابر الأحمد الصباح، طيب الله ثراه، هو أمير القلوب الذي قاد ملحمة الصمود والتحرير." },
+  { question: "ما هو المشروع التنموي الذي يربط العاصمة بالصبية بطول يناهز 36 كم؟", options: ["ميناء مبارك", "جسر جابر", "مصفاة الشعيبة", "المطار الدولي"], correct: 1, explanation: "جسر الشيخ جابر الأحمد الصباح البحري هو أحد أطول الجسور المائية في العالم." },
+  { question: "في عهد من تم اعتماد أول دستور حديث للكويت؟", options: ["الشيخ مبارك الكبير", "الشيخ عبد الله السالم", "الشيخ أحمد الجابر", "الشيخ جابر الأحمد"], correct: 1, explanation: "الشيخ عبد الله السالم الصباح هو 'أبو الدستور' الذي اعتمد دستور 1962." }
+];
+
+function ImageWithFallback({ src, alt, fallbackIcon, fallbackColor, className }) {
+  const [imgSrc, setImgSrc] = useState(src);
+  const [isError, setIsError] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(src);
+    setIsError(false);
+  }, [src]);
+
+  return !isError ? (
+    <img 
+      src={imgSrc} 
+      alt={alt} 
+      className={className} 
+      onError={() => setIsError(true)}
+    />
+  ) : (
+    <div 
+      className={`flex items-center justify-center text-3xl select-none ${className}`}
+      style={{ background: `linear-gradient(135deg, ${fallbackColor || '#8B0000'}, #0f172a)` }}
+    >
+      <span>{fallbackIcon}</span>
+    </div>
+  );
+}
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('timeline');
+  const [user, setUser] = useState(null);
+  
+  // نظام السمات البصرية
+  const [themeMode, setThemeMode] = useState('sepia');
+  
+  // حالات البيانات المزامنة سحابياً
+  const [events, setEvents] = useState(STATIC_HISTORICAL_EVENTS);
+  const [rulers, setRulers] = useState(STATIC_RULERS_DATA);
+  const [isDbSeeded, setIsDbSeeded] = useState(false);
+  const [isFirestoreOffline, setIsFirestoreOffline] = useState(false); // حالة رصد الاتصال بالوضع المحلي الآمن
+
+  // حالات لوحة الزمن والتصفية
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('الكل');
+  const [selectedRulerFilter, setSelectedRulerFilter] = useState('الكل');
+  const [selectedYearObj, setSelectedYearObj] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  
+  // حالات المفكرة السحابية للمستخدمين
+  const [notes, setNotes] = useState([]);
+  const [newNoteTitle, setNewNoteTitle] = useState('');
+  const [newNoteContent, setNewNoteContent] = useState('');
+  const [newNoteYear, setNewNoteYear] = useState('عام');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(null);
+
+  // حالات مساعد الذكاء الاصطناعي (Gemini Chrono Bot)
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    { role: 'assistant', text: 'أهلاً بك في فضاء المؤرخ الذكي لتاريخ دولة الكويت. يسعدني الإجابة بدقة بالغة على أي تساؤل علمي أو قانوني أو تاريخي حول الأحداث الكبرى منذ عام 1899 م وحتى عهد سمو الشيخ مشعل الأحمد الصباح اليوم.' }
+  ]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
+  // حالات الاختبار التفاعلي (Trivia Game)
+  const [quizIndex, setQuizIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [hasSubmittedAnswer, setHasSubmittedAnswer] = useState(false);
+  const [score, setScore] = useState(0);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  
+  // حالة التحكم في بطاقة الحكام النشطة
+  const [selectedRulerCard, setSelectedRulerCard] = useState(STATIC_RULERS_DATA[0]);
+
+  // دالة استخراج تفاصيل الحاكم بناء على المعرف لتجنب خطأ التأسيس
+  const getRulerDetails = (rulerId) => {
+    return rulers.find(r => r.id === rulerId) || { 
+      name: 'غير محدد', 
+      color: '#666', 
+      bgGradient: 'from-slate-900 to-slate-950', 
+      title: 'حاكم معاصر', 
+      achievements: [] 
+    };
+  };
+
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [adminPinInput, setAdminPinInput] = useState('');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminActiveSubTab, setAdminActiveSubTab] = useState('add_event'); // 'add_event', 'manage_events', 'manage_rulers'
+  const [adminError, setAdminActiveError] = useState(null);
+
+  // نموذج إضافة حدث جديد للمستقبل أو الحاضر
+  const [adminEventYear, setAdminEventYear] = useState('');
+  const [adminEventTitle, setAdminEventTitle] = useState('');
+  const [adminEventDesc, setAdminEventDesc] = useState('');
+  const [adminEventCategory, setAdminEventCategory] = useState('سياسي');
+  const [adminEventRuler, setAdminEventRuler] = useState('meshal_ahmad');
+  const [adminEventIcon, setAdminEventIcon] = useState('🇰🇼');
+  const [adminEventImage, setAdminEventImage] = useState('');
+  const [editingEventId, setEditingEventId] = useState(null);
+
+  // مرجع لنهاية صندوق الرسائل
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (!auth) return;
+
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Authentication Error:", err);
+      }
+    };
+
+    initAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, (usr) => {
+      setUser(usr);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!db || !user) {
+      setIsFirestoreOffline(true);
+      return;
+    }
+
+    setIsSyncing(true);
+
+    // 1. مزامنة الأحداث التاريخية في الوقت الفعلي مع معالجة الصلاحيات
+    const eventsCollection = collection(db, 'artifacts', appId, 'events');
+    const unsubscribeEvents = onSnapshot(eventsCollection, (snapshot) => {
+      if (snapshot.empty) {
+        // إذا كانت السحابة خالية تماماً، نقوم بحقن الأحداث الثابتة الـ 128 فوراً
+        seedDatabase();
+      } else {
+        const eventsList = [];
+        snapshot.forEach((doc) => {
+          eventsList.push({ id: doc.id, ...doc.data() });
+        });
+        // ترتيب تصاعدي حسب السنة
+        eventsList.sort((a, b) => a.year - b.year);
+        setEvents(eventsList);
+        setIsFirestoreOffline(false);
+      }
+      setIsSyncing(false);
+    }, (error) => {
+      console.warn("Firestore events access restricted. Falling back to local offline dataset safely.", error);
+      setIsSyncing(false);
+      setIsFirestoreOffline(true); // تشغيل وضع الحماية غير المتزامن
+      setEvents(STATIC_HISTORICAL_EVENTS); // تحميل الأحداث محلياً لضمان عدم توقف الموقع
+    });
+
+    // 2. مزامنة الحكام في الوقت الفعلي مع معالجة الصلاحيات
+    const rulersCollection = collection(db, 'artifacts', appId, 'rulers');
+    const unsubscribeRulers = onSnapshot(rulersCollection, (snapshot) => {
+      if (!snapshot.empty) {
+        const rulersList = [];
+        snapshot.forEach((doc) => {
+          rulersList.push({ id: doc.id, ...doc.data() });
+        });
+        setRulers(rulersList);
+      }
+    }, (error) => {
+      console.warn("Firestore rulers access restricted. Using static rulers.", error);
+      setIsFirestoreOffline(true);
+      setRulers(STATIC_RULERS_DATA);
+    });
+
+    // 3. مزامنة الملاحظات الشخصية للمستخدم مع معالجة الصلاحيات
+    const notesCollection = collection(db, 'artifacts', appId, 'users', user.uid, 'notes');
+    const unsubscribeNotes = onSnapshot(notesCollection, (snapshot) => {
+      const notesList = [];
+      snapshot.forEach((doc) => {
+        notesList.push({ id: doc.id, ...doc.data() });
+      });
+      notesList.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      setNotes(notesList);
+    }, (error) => {
+      console.warn("Firestore user notes access restricted.", error);
+      setIsFirestoreOffline(true);
+    });
+
+    return () => {
+      unsubscribeEvents();
+      unsubscribeRulers();
+      unsubscribeNotes();
+    };
+  }, [user]);
+
+  const seedDatabase = async () => {
+    if (!db) return;
+    try {
+      console.log("Seeding Firestore with historical dataset...");
+      
+      // 1. حقن الحكام آل الصباح الكرام
+      for (const ruler of STATIC_RULERS_DATA) {
+        await setDoc(doc(db, 'artifacts', appId, 'rulers', ruler.id), ruler);
+      }
+
+      // 2. حقن الأحداث التاريخية كاملة صوراً وتفاصيل
+      for (const event of STATIC_HISTORICAL_EVENTS) {
+        const customDocId = `event_${event.year}`;
+        await setDoc(doc(db, 'artifacts', appId, 'events', customDocId), event);
+      }
+
+      console.log("Database seeded successfully!");
+      setIsDbSeeded(true);
+    } catch (err) {
+      console.error("Error seeding database:", err);
+    }
+  };
+
+  const handleAddNote = async (e) => {
+    e.preventDefault();
+    if (!newNoteTitle.trim() || !newNoteContent.trim()) return;
+
+    const notePayload = {
+      title: newNoteTitle,
+      content: newNoteContent,
+      year: newNoteYear,
+      timestamp: serverTimestamp ? serverTimestamp() : new Date()
+    };
+
+    if (db && user) {
+      setIsSyncing(true);
+      try {
+        const notesCollection = collection(db, 'artifacts', appId, 'users', user.uid, 'notes');
+        await addDoc(notesCollection, notePayload);
+        setNewNoteTitle('');
+        setNewNoteContent('');
+        setNewNoteYear('عام');
+      } catch (err) {
+        console.error("Error adding note:", err);
+        setSyncError("لم نتمكن من حفظ الملاحظة بالسحابة، يرجى المحاولة لاحقاً.");
+      } finally {
+        setIsSyncing(false);
+      }
+    } else {
+      const localNote = {
+        id: crypto.randomUUID(),
+        ...notePayload,
+        timestamp: { seconds: Math.floor(Date.now() / 1000) }
+      };
+      setNotes([localNote, ...notes]);
+      setNewNoteTitle('');
+      setNewNoteContent('');
+      setNewNoteYear('عام');
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    if (db && user) {
+      setIsSyncing(true);
+      try {
+        const noteDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'notes', noteId);
+        await deleteDoc(noteDocRef);
+      } catch (err) {
+        console.error("Error deleting note:", err);
+        setSyncError("فشل حذف الملاحظة من السحابة.");
+      } finally {
+        setIsSyncing(false);
+      }
+    } else {
+      setNotes(notes.filter(note => note.id !== noteId));
+    }
+  };
+
+  const callGeminiAPI = async (promptText) => {
+    const apiKey = ""; 
+    const systemInstruction = `أنت "المؤرخ الذكي لتاريخ دولة الكويت" وصاحب خلفية بحثية وأكاديمية دقيقة جداً.
+مهمتك هي الرد بدقة وموثوقية بالغة وبأسلوب تاريخي رصين ومثقف (باللغة العربية الفصحى) على كافة الأسئلة التي يطرحها المستخدم حول تاريخ الكويت منذ عام 1899 م وحتى عهد سمو الشيخ مشعل الأحمد الصباح اليوم (2026).
+اجعل إجاباتك غنية بالمعلومات التنموية والقانونية والسياسية المرتبطة بالسؤال ولكن موجزة ومركزة لتناسب واجهات العرض التفاعلية.`;
+
+    const maxRetries = 5;
+    let delay = 1000;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }] }],
+            systemInstruction: { parts: [{ text: systemInstruction }] }
+          })
+        });
+
+        if (!response.ok) throw new Error(`API Status Code: ${response.status}`);
+
+        const data = await response.json();
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (responseText) return responseText;
+        throw new Error("Empty response object from Gemini.");
+      } catch (err) {
+        if (attempt === maxRetries - 1) throw err;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+      }
+    }
+  };
+
+  const handleSendChatMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isChatLoading) return;
+
+    const userMessage = chatInput;
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setIsChatLoading(true);
+
+    try {
+      const responseText = await callGeminiAPI(userMessage);
+      setChatMessages(prev => [...prev, { role: 'assistant', text: responseText }]);
+    } catch (err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, { role: 'assistant', text: 'عذراً، واجهنا عارضاً تقنياً أثناء استدعاء الذاكرة التاريخية. يرجى إعادة المحاولة.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleQuickQuestion = async (question) => {
+    setChatInput(question);
+    setChatMessages(prev => [...prev, { role: 'user', text: question }]);
+    setIsChatLoading(true);
+    try {
+      const responseText = await callGeminiAPI(question);
+      setChatMessages(prev => [...prev, { role: 'assistant', text: responseText }]);
+    } catch (err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, { role: 'assistant', text: 'حدث خطأ أثناء معالجة استفسارك التاريخي السريع.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleAdminLogin = (e) => {
+    e.preventDefault();
+    if (adminPinInput === '1961') {
+      setIsAdminAuthenticated(true);
+      setAdminPinInput('');
+      setAdminActiveError(null);
+    } else {
+      setAdminActiveError('رمز الدخول السري غير صحيح. يرجى إدخال عام استقلال دولة الكويت (1961).');
+    }
+  };
+
+  const handleSaveEvent = async (e) => {
+    e.preventDefault();
+    if (!adminEventYear || !adminEventTitle || !adminEventDesc) {
+      setAdminActiveError('يرجى ملء جميع الحقول المطلوبة لحفظ الحدث.');
+      return;
+    }
+
+    const eventPayload = {
+      year: parseInt(adminEventYear),
+      title: adminEventTitle,
+      desc: adminEventDesc,
+      category: adminEventCategory,
+      ruler: adminEventRuler,
+      icon: adminEventIcon || '🇰🇼',
+      image: adminEventImage || 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=600&q=80'
+    };
+
+    if (db && !isFirestoreOffline) {
+      setIsSyncing(true);
+      try {
+        if (editingEventId) {
+          const eventDocRef = doc(db, 'artifacts', appId, 'events', editingEventId);
+          await updateDoc(eventDocRef, eventPayload);
+          setEditingEventId(null);
+        } else {
+          const customDocId = `event_${eventPayload.year}`;
+          await setDoc(doc(db, 'artifacts', appId, 'events', customDocId), eventPayload);
+        }
+
+        setAdminEventYear('');
+        setAdminEventTitle('');
+        setAdminEventDesc('');
+        setAdminEventImage('');
+        setAdminEventIcon('🇰🇼');
+        setAdminActiveError(null);
+        alert('تم حفظ البيانات وتحديثها فورياً على الخوادم السحابية والموقع!');
+      } catch (err) {
+        console.error("Error saving event:", err);
+        setAdminActiveError('حدث خطأ أثناء الاتصال وحفظ البيانات سحابياً.');
+      } finally {
+        setIsSyncing(false);
+      }
+    } else {
+      // تعديل محلي في حال غياب السحابة
+      if (editingEventId) {
+        setEvents(events.map(ev => ev.id === editingEventId ? { ...ev, ...eventPayload } : ev));
+        setEditingEventId(null);
+      } else {
+        const newLocalEvent = { id: `local_${Date.now()}`, ...eventPayload };
+        setEvents([...events, newLocalEvent].sort((a,b)=>a.year - b.year));
+      }
+      setAdminEventYear('');
+      setAdminEventTitle('');
+      setAdminEventDesc('');
+      setAdminEventImage('');
+      setAdminActiveError(null);
+      alert('تم التحديث المحلي بنجاح!');
+    }
+  };
+
+  const handleEditEventClick = (event) => {
+    setEditingEventId(event.id || `event_${event.year}`);
+    setAdminEventYear(event.year.toString());
+    setAdminEventTitle(event.title);
+    setAdminEventDesc(event.desc);
+    setAdminEventCategory(event.category);
+    setAdminEventRuler(event.ruler);
+    setAdminEventIcon(event.icon);
+    setAdminEventImage(event.image || '');
+    setAdminActiveSubTab('add_event');
+  };
+
+  const handleDeleteEventClick = async (eventId, year) => {
+    const idToDelete = eventId || `event_${year}`;
+    if (!window.confirm('هل أنت متأكد من رغبتك في حذف هذا الحدث التاريخي نهائياً من الموسوعة؟')) return;
+
+    if (db && !isFirestoreOffline) {
+      setIsSyncing(true);
+      try {
+        const eventDocRef = doc(db, 'artifacts', appId, 'events', idToDelete);
+        await deleteDoc(eventDocRef);
+        alert('تم حذف الحدث بنجاح من الموسوعة السحابية.');
+      } catch (err) {
+        console.error("Error deleting event:", err);
+      } finally {
+        setIsSyncing(false);
+      }
+    } else {
+      setEvents(events.filter(ev => (ev.id !== idToDelete && ev.year !== year)));
+      alert('تم الحذف المحلي بنجاح.');
+    }
+  };
+
+  const handleAnswerSelect = (index) => {
+    if (hasSubmittedAnswer) return;
+    setSelectedAnswer(index);
+  };
+
+  const submitQuizAnswer = () => {
+    if (selectedAnswer === null || hasSubmittedAnswer) return;
+    
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      if (selectedAnswer === QUIZ_QUESTIONS[quizIndex].correct) {
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+        setScore(prev => prev + 1);
+      } else {
+        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(110, audioCtx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+      }
+    } catch (e) {
+      console.log("Audio API blocked or not supported.");
+    }
+
+    setHasSubmittedAnswer(true);
+  };
+
+  const nextQuizQuestion = () => {
+    setSelectedAnswer(null);
+    setHasSubmittedAnswer(false);
+    if (quizIndex < QUIZ_QUESTIONS.length - 1) {
+      setQuizIndex(prev => prev + 1);
+    } else {
+      setQuizCompleted(true);
+    }
+  };
+
+  const restartQuiz = () => {
+    setQuizIndex(0);
+    setSelectedAnswer(null);
+    setHasSubmittedAnswer(false);
+    setScore(0);
+    setQuizCompleted(false);
+  };
+
+  const filteredEvents = events.filter(event => {
+    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          event.desc.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          event.year.toString().includes(searchTerm);
+    const matchesCategory = selectedCategory === 'الكل' || event.category === selectedCategory;
+    const matchesRuler = selectedRulerFilter === 'الكل' || event.ruler === selectedRulerFilter;
+    
+    return matchesSearch && matchesCategory && matchesRuler;
+  }).sort((a, b) => a.year - b.year);
+
+  // مظهر السمة والـ Palette
+  const bgThemeClass = themeMode === 'sepia' 
+    ? 'bg-[#f8f1e5] text-[#3e2723] selection:bg-amber-800 selection:text-amber-50' 
+    : 'bg-slate-950 text-slate-100 selection:bg-amber-500 selection:text-slate-950';
+
+  const cardThemeClass = themeMode === 'sepia'
+    ? 'bg-[#f1e6d2] border-[#dac9ad] hover:border-amber-800/80'
+    : 'bg-slate-900 border-slate-800 hover:border-amber-400/80';
+
+  const inputThemeClass = themeMode === 'sepia'
+    ? 'bg-[#fcf8f0] border-[#cfbe9f] text-[#3e2723] placeholder-[#8d6e63] focus:border-amber-800'
+    : 'bg-slate-950 border-slate-800 text-slate-100 placeholder-slate-500 focus:border-amber-500';
+
+  return (
+    <div dir="rtl" className={`min-h-screen flex flex-col font-sans transition-colors duration-500 ${bgThemeClass}`}>
+      
+      {/* رأس المنصة الإبداعي الشامل */}
+      <header className={`border-b backdrop-blur-md sticky top-0 z-40 px-4 py-3 md:px-8 transition-colors duration-500 ${themeMode === 'sepia' ? 'border-[#cfbe9f] bg-[#f8f1e5]/90' : 'border-slate-800 bg-slate-900/85'}`}>
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+          
+          <div className="flex items-center gap-4">
+            <div className={`p-2 rounded-xl shadow-lg transition-all ${themeMode === 'sepia' ? 'bg-amber-850 text-amber-50 shadow-amber-850/20' : 'bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 shadow-amber-500/20'}`}>
+              <Compass className="w-8 h-8 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className={`text-xl md:text-2xl font-black tracking-tight ${themeMode === 'sepia' ? 'text-amber-950' : 'text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500'}`}>
+                  الكويت في مائة عام وما بعدها <span className={`text-xs font-bold py-0.5 px-2 rounded-full border ${themeMode === 'sepia' ? 'bg-amber-800/10 text-amber-900 border-amber-900/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/35'}`}>Plus+</span>
+                </h1>
+              </div>
+              <p className={`text-xs mt-1 ${themeMode === 'sepia' ? 'text-[#6d4c41]' : 'text-slate-400'}`}>
+                موسوعة الذاكرة التاريخية الوطنية والتحول التنموي والسياسي الذكي (1899 - 2026+)
+              </p>
+            </div>
+          </div>
+
+          {/* تبويبات التنقل الرئيسية للمنصة */}
+          <nav className={`flex flex-wrap justify-center items-center gap-1.5 p-1.5 rounded-xl border w-full lg:w-auto ${themeMode === 'sepia' ? 'bg-[#ebdcb9] border-[#cfbe9f]' : 'bg-slate-950 border-slate-800'}`}>
+            <button 
+              onClick={() => { setActiveTab('timeline'); setSelectedYearObj(null); setIsAdminMode(false); }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${activeTab === 'timeline' && !isAdminMode ? 'bg-amber-800 text-white shadow-md' : themeMode === 'sepia' ? 'text-[#5d4037] hover:bg-[#ebdca9]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+            >
+              <Calendar className="w-4 h-4" />
+              لوحة البوستر التاريخي
+            </button>
+            
+            <button 
+              onClick={() => { setActiveTab('rulers'); setIsAdminMode(false); }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${activeTab === 'rulers' && !isAdminMode ? 'bg-amber-800 text-white shadow-md' : themeMode === 'sepia' ? 'text-[#5d4037] hover:bg-[#ebdca9]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+            >
+              <Award className="w-4 h-4" />
+              سيرة الحكام الكرام
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('atlas'); setIsAdminMode(false); }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${activeTab === 'atlas' && !isAdminMode ? 'bg-amber-800 text-white shadow-md' : themeMode === 'sepia' ? 'text-[#5d4037] hover:bg-[#ebdca9]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+            >
+              <MapPin className="w-4 h-4" />
+              أطلس المعالم
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('chat'); setIsAdminMode(false); }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all relative ${activeTab === 'chat' && !isAdminMode ? 'bg-amber-800 text-white shadow-md' : themeMode === 'sepia' ? 'text-[#5d4037] hover:bg-[#ebdca9]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+            >
+              <Sparkles className="w-4 h-4 text-purple-600 animate-bounce" />
+              المساعد الذكي (AI)
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('quiz'); setIsAdminMode(false); }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${activeTab === 'quiz' && !isAdminMode ? 'bg-amber-800 text-white shadow-md' : themeMode === 'sepia' ? 'text-[#5d4037] hover:bg-[#ebdca9]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+            >
+              <BookOpen className="w-4 h-4" />
+              اختبر معلوماتك
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('notes'); setIsAdminMode(false); }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${activeTab === 'notes' && !isAdminMode ? 'bg-amber-800 text-white shadow-md' : themeMode === 'sepia' ? 'text-[#5d4037] hover:bg-[#ebdca9]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+            >
+              <FileText className="w-4 h-4" />
+              مذكراتي السحابية
+            </button>
+
+            <button 
+              onClick={() => setIsAdminMode(true)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${isAdminMode ? 'bg-amber-800 text-white shadow-md' : themeMode === 'sepia' ? 'text-[#5d4037] hover:bg-[#ebdca9]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}
+            >
+              <Settings className="w-4 h-4 text-amber-600" />
+              إدارة الإشراف
+            </button>
+          </nav>
+
+          {/* محددات المظهر والاتصال بالخلفية السحابية */}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setThemeMode(themeMode === 'sepia' ? 'dark' : 'sepia')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm border ${themeMode === 'sepia' ? 'bg-slate-900 border-slate-800 text-amber-400 hover:bg-slate-850' : 'bg-[#f1e6d2] border-[#cfbe9f] text-amber-900 hover:bg-[#ebdcb9]'}`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              {themeMode === 'sepia' ? 'النمط الداكن الحديث' : 'مظهر البوستر الورقي'}
+            </button>
+          </div>
+
+        </div>
+      </header>
+
+      {/* شريط تشخيص أمان السحابة */}
+      {isFirestoreOffline && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 text-center text-xs transition-all animate-fadeIn">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-amber-700">
+            <div className="flex items-center gap-2 text-right">
+              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 animate-pulse" />
+              <div>
+                <span className="font-black">تنبيه قواعد حماية خادوم فايربيس (Firestore Rules):</span>
+                <p className="text-[10px] text-slate-500 mt-0.5">تم تفعيل "الوضع المحلي الآمن والمستقر" بنجاح دون تعطل. لتفعيل الحفظ السحابي، يرجى لصق كود القواعد أدناه في كونسول Firebase الخاص بك.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-950/5 border border-amber-500/20 p-1.5 rounded-lg font-mono text-[9px] text-left select-all bg-white/50">
+              {`match /artifacts/kuwait-100-plus-app/{document=**} { allow read, write: if true; }`}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* جسم الصفحة الرئيسي والمحيط الإبداعي (Main App Container) */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 flex flex-col gap-6">
+        
+        {/* ==========================================
+            تبويب الإشراف ولوحة التحكم (Admin Panel Console)
+            ========================================== */}
+        {isAdminMode && (
+          <div className="flex flex-col gap-6 animate-fadeIn">
+            
+            {/* بطاقة المصادقة الأولية (Authentication Gate) */}
+            {!isAdminAuthenticated ? (
+              <div className={`max-w-md mx-auto w-full rounded-2xl border p-6 shadow-xl text-center ${cardThemeClass}`}>
+                <div className="w-16 h-16 bg-amber-800/10 text-amber-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-800/20">
+                  <Lock className="w-8 h-8 animate-pulse" />
+                </div>
+                <h2 className="text-lg font-black mb-1">لوحة الإشراف والتعديل السحابي الفوري</h2>
+                <p className={`text-xs mb-6 ${themeMode === 'sepia' ? 'text-[#8d6e63]' : 'text-slate-400'}`}>
+                  يرجى إدخال رمز الدخول السري (سنة الاستقلال) لإضافة السنوات وتعديل وقائع المعالم والصور.
+                </p>
+
+                <form onSubmit={handleAdminLogin} className="flex flex-col gap-4">
+                  <input 
+                    type="password" 
+                    placeholder="أدخل رمز الـ PIN هنا..."
+                    value={adminPinInput}
+                    onChange={(e) => setAdminPinInput(e.target.value)}
+                    className={`w-full border rounded-xl px-4 py-3 text-center text-sm font-bold tracking-widest focus:outline-none transition-all ${inputThemeClass}`}
+                  />
+                  {adminError && (
+                    <div className="text-red-600 text-xs font-bold leading-relaxed">{adminError}</div>
+                  )}
+                  <button 
+                    type="submit" 
+                    className="bg-amber-800 hover:bg-amber-900 text-white font-extrabold py-3 px-6 rounded-xl text-xs transition-all shadow-md"
+                  >
+                    تأكيد والولوج إلى خادم الإدارة
+                  </button>
+                </form>
+              </div>
+            ) : (
+              /* لوحة التحكم النشطة للمشرف */
+              <div className={`rounded-2xl border shadow-xl p-6 flex flex-col gap-6 transition-all ${cardThemeClass}`}>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-amber-900/10 pb-4">
+                  <div>
+                    <h2 className="text-lg font-black text-amber-950 flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-amber-800" />
+                      لوحة تحكم خادم الموسوعة: المعتز بالله
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">تعديل فوري ومباشر على الوقائع، الصور والأعوام والعهود التراثية.</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsAdminAuthenticated(false)}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors"
+                  >
+                    تسجيل الخروج الآمن
+                  </button>
+                </div>
+
+                {/* تبويبات لوحة التحكم الفرعية */}
+                <div className="flex gap-2 border-b border-amber-900/5 pb-2">
+                  <button 
+                    onClick={() => { setAdminActiveSubTab('add_event'); setEditingEventId(null); }}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${adminActiveSubTab === 'add_event' ? 'bg-amber-800 text-white' : 'bg-transparent text-slate-500 hover:bg-black/5'}`}
+                  >
+                    إضافة أو تعديل حدث سنوي
+                  </button>
+                  <button 
+                    onClick={() => setAdminActiveSubTab('manage_events')}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${adminActiveSubTab === 'manage_events' ? 'bg-amber-800 text-white' : 'bg-transparent text-slate-500 hover:bg-black/5'}`}
+                  >
+                    إدارة وجدول الأحداث الـ 128
+                  </button>
+                </div>
+
+                {/* المحتوى الفرعي 1: نموذج إضافة/تعديل حدث */}
+                {adminActiveSubTab === 'add_event' && (
+                  <form onSubmit={handleSaveEvent} className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <div className="md:col-span-3">
+                      <label className="block text-xs font-black mb-1">السنة التاريخية (أرقام):</label>
+                      <input 
+                        type="number" 
+                        placeholder="مثال: 2027"
+                        value={adminEventYear}
+                        onChange={(e) => setAdminEventYear(e.target.value)}
+                        required
+                        className={`w-full border rounded-xl px-3 py-2.5 text-xs ${inputThemeClass}`}
+                      />
+                    </div>
+                    <div className="md:col-span-5">
+                      <label className="block text-xs font-black mb-1">عنوان الحدث:</label>
+                      <input 
+                        type="text" 
+                        placeholder="مثال: إطلاق مشروع الطاقة المتجددة بالشقايا"
+                        value={adminEventTitle}
+                        onChange={(e) => setAdminEventTitle(e.target.value)}
+                        required
+                        className={`w-full border rounded-xl px-3 py-2.5 text-xs ${inputThemeClass}`}
+                      />
+                    </div>
+                    <div className="md:col-span-4">
+                      <label className="block text-xs font-black mb-1">التصنيف أو الفئة:</label>
+                      <select 
+                        value={adminEventCategory}
+                        onChange={(e) => setAdminEventCategory(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2.5 text-xs focus:outline-none ${inputThemeClass}`}
+                      >
+                        <option value="سياسي">سياسي ودبلوماسي</option>
+                        <option value="اقتصادي">اقتصادي ونفطي</option>
+                        <option value="اجتماعي">اجتماعي وحقوقي</option>
+                        <option value="ثقافي">ثقافي وتعليمي</option>
+                        <option value="نهضة وتطوير">نهضة وعمران وتطور</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-4">
+                      <label className="block text-xs font-black mb-1">عهد الحاكم الصباحي:</label>
+                      <select 
+                        value={adminEventRuler}
+                        onChange={(e) => setAdminEventRuler(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2.5 text-xs focus:outline-none ${inputThemeClass}`}
+                      >
+                        {rulers.map(r => (
+                          <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="md:col-span-4">
+                      <label className="block text-xs font-black mb-1">رابط الصورة المعبرة (URL):</label>
+                      <input 
+                        type="url" 
+                        placeholder="أدخل رابط صورة تراثية أو حقيقية..."
+                        value={adminEventImage}
+                        onChange={(e) => setAdminEventImage(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2.5 text-xs ${inputThemeClass}`}
+                      />
+                    </div>
+                    <div className="md:col-span-4">
+                      <label className="block text-xs font-black mb-1">رمز تعبيري مميز (Emoji):</label>
+                      <input 
+                        type="text" 
+                        placeholder="مثال: 🇰🇼"
+                        value={adminEventIcon}
+                        onChange={(e) => setAdminEventIcon(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2.5 text-xs ${inputThemeClass}`}
+                      />
+                    </div>
+
+                    <div className="md:col-span-12">
+                      <label className="block text-xs font-black mb-1">تفاصيل وبيان الحدث التاريخي والأثر التنموي:</label>
+                      <textarea 
+                        placeholder="اكتب بالتفصيل سرد الواقعة التاريخية التي تصف الحدث الحقيقي للكويت..."
+                        value={adminEventDesc}
+                        onChange={(e) => setAdminEventDesc(e.target.value)}
+                        required
+                        rows={4}
+                        className={`w-full border rounded-xl px-3 py-2.5 text-xs resize-none ${inputThemeClass}`}
+                      />
+                    </div>
+
+                    <div className="md:col-span-12 flex justify-end gap-2 mt-2">
+                      {editingEventId && (
+                        <button 
+                          type="button" 
+                          onClick={() => { setEditingEventId(null); setAdminEventYear(''); setAdminEventTitle(''); setAdminEventDesc(''); }}
+                          className="px-5 py-2.5 bg-slate-500 text-white text-xs font-bold rounded-xl transition-all"
+                        >
+                          إلغاء التعديل
+                        </button>
+                      )}
+                      <button 
+                        type="submit" 
+                        className="px-6 py-2.5 bg-amber-850 hover:bg-amber-900 text-white text-xs font-extrabold rounded-xl transition-all shadow-md"
+                      >
+                        {editingEventId ? 'حفظ وتعديل الحدث القائم' : 'حقن وحفظ الحدث باللوحة'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* المحتوى الفرعي 2: قائمة لإدارة وحذف الأحداث */}
+                {adminActiveSubTab === 'manage_events' && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right text-xs">
+                      <thead>
+                        <tr className="border-b border-amber-900/10 text-slate-500">
+                          <th className="pb-2">العام</th>
+                          <th className="pb-2">عنوان الحدث التاريخي</th>
+                          <th className="pb-2">التصنيف</th>
+                          <th className="pb-2">رابط الصورة</th>
+                          <th className="pb-2 text-left">العمليات والمحاسبة</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-amber-900/5">
+                        {events.map(ev => (
+                          <tr key={ev.year} className="hover:bg-black/5 transition-colors">
+                            <td className="py-3 font-bold font-mono text-amber-800">{ev.year}</td>
+                            <td className="py-3 font-bold">{ev.title}</td>
+                            <td className="py-3">{ev.category}</td>
+                            <td className="py-3 truncate max-w-xs font-mono text-slate-400">{ev.image || 'لا يوجد'}</td>
+                            <td className="py-3 text-left flex justify-end gap-1.5">
+                              <button 
+                                onClick={() => handleEditEventClick(ev)}
+                                className="p-1.5 bg-amber-800/10 hover:bg-amber-800 hover:text-white rounded-lg transition-all text-amber-800"
+                                title="تعديل"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteEventClick(ev.id, ev.year)}
+                                className="p-1.5 bg-red-600/10 hover:bg-red-600 hover:text-white rounded-lg transition-all text-red-600"
+                                title="حذف"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* ==========================================
+            التبويب الأول: لوحة البوستر التاريخي التفاعلي
+            ========================================== */}
+        {activeTab === 'timeline' && !isAdminMode && (
+          <div className="flex flex-col gap-6 animate-fadeIn">
+            
+            {/* لوحة التحكم والفرز الأرشيفية */}
+            <div className={`p-4 md:p-6 rounded-2xl border shadow-xl flex flex-col gap-4 transition-all duration-300 ${cardThemeClass}`}>
+              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div>
+                  <h2 className={`text-lg font-black flex items-center gap-2 ${themeMode === 'sepia' ? 'text-amber-950' : 'text-amber-400'}`}>
+                    <Clock className="w-5 h-5 text-amber-600" />
+                    مستكشف لوحة مائة عام للأحداث الكويتية
+                  </h2>
+                  <p className={`text-xs mt-0.5 ${themeMode === 'sepia' ? 'text-[#8d6e63]' : 'text-slate-400'}`}>ابحث عن الأعوام وتصفح الصور الأرشيفية المخصصة لكل حدث تاريخي بشكل مباشر.</p>
+                </div>
+                
+                {/* تبديل طريقة العرض */}
+                <div className={`flex gap-1 p-1 rounded-lg border ${themeMode === 'sepia' ? 'bg-[#ebdcb9] border-[#cfbe9f]' : 'bg-slate-950 border-slate-800'}`}>
+                  <button 
+                    onClick={() => setViewMode('grid')}
+                    className={`px-3 py-1 text-xs rounded-md font-bold transition-all ${viewMode === 'grid' ? 'bg-amber-800 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    شبكة البوستر المصورة
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('list')}
+                    className={`px-3 py-1 text-xs rounded-md font-bold transition-all ${viewMode === 'list' ? 'bg-amber-800 text-white' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    السرد المتسلسل
+                  </button>
+                </div>
+              </div>
+
+              {/* عناصر البحث والتصفية الهجينة */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="relative">
+                  <Search className="absolute right-3 top-2.5 w-4 h-4 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="ابحث عن عام، حدث، قانون، معركة..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className={`w-full border rounded-xl pr-9 pl-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-amber-800 transition-all ${inputThemeClass}`}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <select 
+                    value={selectedRulerFilter} 
+                    onChange={(e) => setSelectedRulerFilter(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none transition-all ${inputThemeClass}`}
+                  >
+                    <option value="الكل">جميع عهود الحكام الكرام</option>
+                    {rulers.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <select 
+                    value={selectedCategory} 
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none transition-all ${inputThemeClass}`}
+                  >
+                    <option value="الكل">جميع فئات الأحداث</option>
+                    <option value="سياسي">أحداث سياسية ودبلوماسية</option>
+                    <option value="اقتصادي">أحداث اقتصادية ونفطية</option>
+                    <option value="اجتماعي">أحداث اجتماعية وحقوقية</option>
+                    <option value="ثقافي">أحداث ثقافية وتعليمية</option>
+                    <option value="نهضة وتطوير">نهضة وعمران وبنية تحتية</option>
+                  </select>
+                </div>
+
+                <button 
+                  onClick={() => { setSearchTerm(''); setSelectedCategory('الكل'); setSelectedRulerFilter('الكل'); }}
+                  className={`border hover:border-amber-800 font-bold rounded-xl py-2 px-3 text-xs flex items-center justify-center gap-1.5 transition-all ${themeMode === 'sepia' ? 'bg-[#fcf8f0] border-[#cfbe9f] text-amber-900' : 'bg-slate-950 border-slate-800 text-slate-300'}`}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  تصفير الخيارات
+                </button>
+              </div>
+
+              {/* خط الزمن ومفاتيح الألوان */}
+              <div className="mt-2 border-t border-amber-900/10 pt-3">
+                <div className={`text-xs font-black mb-2 ${themeMode === 'sepia' ? 'text-amber-950' : 'text-slate-400'}`}>عهود حكام دولة الكويت (انقر للفرز السريع):</div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button 
+                    onClick={() => setSelectedRulerFilter('الكل')}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-black border transition-all ${selectedRulerFilter === 'الكل' ? 'bg-amber-800 text-white border-amber-800' : 'bg-transparent border-amber-900/20 text-[#5d4037]'}`}
+                  >
+                    عرض جميع العهود
+                  </button>
+                  {rulers.map(r => (
+                    <button 
+                      key={r.id}
+                      onClick={() => setSelectedRulerFilter(r.id)}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-black border flex items-center gap-1.5 transition-all`}
+                      style={{
+                        backgroundColor: selectedRulerFilter === r.id ? r.color : 'transparent',
+                        borderColor: r.color,
+                        color: selectedRulerFilter === r.id ? '#ffffff' : themeMode === 'sepia' ? '#5d4037' : '#f8fafc'
+                      }}
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedRulerFilter === r.id ? '#ffffff' : r.color }}></span>
+                      {r.name.split(' (')[0]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* تخطيط شبكة البوستر الأرشيفية التفاعلية */}
+            {viewMode === 'grid' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredEvents.map(event => {
+                  const rulerInfo = getRulerDetails(event.ruler);
+                  return (
+                    <div 
+                      key={event.year}
+                      onClick={() => setSelectedYearObj(event)}
+                      className={`group cursor-pointer rounded-2xl border flex flex-col justify-between overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 relative ${cardThemeClass}`}
+                      style={{ borderTop: `5px solid ${rulerInfo.color}` }}
+                    >
+                      {/* واجهة العرض المصورة لكل حدث تاريخي (Kuwait Historical Images) */}
+                      <div className="w-full h-40 overflow-hidden relative bg-slate-950 border-b border-amber-900/10">
+                        <ImageWithFallback 
+                          src={event.image} 
+                          alt={event.title} 
+                          fallbackIcon={event.icon} 
+                          fallbackColor={rulerInfo.color}
+                          className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ${event.year < 1961 ? 'grayscale contrast-125 sepia-[0.1]' : ''}`} 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                        
+                        {/* فئة الحدث والعام العائم على الصورة */}
+                        <div className="absolute bottom-2.5 right-2.5 left-2.5 flex items-center justify-between">
+                          <span className="text-2xl md:text-3xl font-black text-amber-400 tracking-tight font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                            {event.year}
+                          </span>
+                          <span className="text-[10px] py-0.5 px-2 rounded-md bg-amber-800 text-white font-bold border border-amber-600/30">
+                            {event.category}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* النصوص والأبعاد التاريخية */}
+                      <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                        <div>
+                          <h3 className={`text-xs md:text-sm font-black transition-colors ${themeMode === 'sepia' ? 'text-amber-950 group-hover:text-amber-800' : 'text-slate-100 group-hover:text-amber-300'}`}>
+                            {event.title}
+                          </h3>
+                          <p className={`text-[11px] mt-1 line-clamp-3 leading-relaxed ${themeMode === 'sepia' ? 'text-[#5d4037]' : 'text-slate-400'}`}>
+                            {event.desc}
+                          </p>
+                        </div>
+
+                        <div className={`pt-2.5 border-t flex items-center justify-between text-[10px] font-black ${themeMode === 'sepia' ? 'border-[#ebdcb9] text-[#8d6e63]' : 'border-slate-800 text-slate-500'}`}>
+                          <span className="truncate max-w-[85%]">
+                            {rulerInfo.name.split(' (')[0]}
+                          </span>
+                          <span className="text-amber-600 font-bold group-hover:translate-x-[-3px] transition-transform">←</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {filteredEvents.length === 0 && (
+                  <div className="col-span-full py-16 text-center">
+                    <p className="text-sm font-black">لا توجد أي أحداث تتطابق مع مدخلات البحث الحالية.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* تخطيط السرد القائمي الأرشيفي */}
+            {viewMode === 'list' && (
+              <div className={`relative border-r-2 mr-4 md:mr-8 pl-2 flex flex-col gap-6 ${themeMode === 'sepia' ? 'border-amber-900/20' : 'border-slate-800'}`}>
+                {filteredEvents.map((event, index) => {
+                  const rulerInfo = getRulerDetails(event.ruler);
+                  return (
+                    <div 
+                      key={event.year}
+                      className="relative pr-8 animate-fadeIn"
+                    >
+                      {/* دائرة المؤشر اللوني على الخط */}
+                      <div 
+                        className="absolute right-[-7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 transition-transform"
+                        style={{ backgroundColor: rulerInfo.color, borderColor: themeMode === 'sepia' ? '#f8f1e5' : '#020617' }}
+                      ></div>
+
+                      <div 
+                        onClick={() => setSelectedYearObj(event)}
+                        className={`cursor-pointer border rounded-2xl p-4 md:p-5 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between shadow-md hover:shadow-xl transition-all ${cardThemeClass}`}
+                      >
+                        <div className="flex gap-4 items-center">
+                          {/* الصورة التاريخية المرافقة بالسرد الممتد */}
+                          <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-slate-950 border border-amber-900/10 shadow-inner">
+                            <ImageWithFallback 
+                              src={event.image} 
+                              alt={event.title} 
+                              fallbackIcon={event.icon} 
+                              fallbackColor={rulerInfo.color}
+                              className={`w-full h-full object-cover ${event.year < 1961 ? 'grayscale contrast-125 sepia-[0.1]' : ''}`} 
+                            />
+                          </div>
+
+                          <div className="text-2xl md:text-3xl font-black text-amber-600 font-mono">
+                            {event.year}
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className={`text-sm md:text-base font-black ${themeMode === 'sepia' ? 'text-amber-950' : 'text-slate-100'}`}>
+                                {event.title}
+                              </h3>
+                              <span className="text-[10px] py-0.5 px-2 rounded-full bg-amber-800 text-white font-bold">
+                                {event.category}
+                              </span>
+                            </div>
+                            <p className={`text-xs mt-1 max-w-3xl leading-relaxed ${themeMode === 'sepia' ? 'text-[#5d4037]' : 'text-slate-400'}`}>
+                              {event.desc}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 self-end md:self-center border-t md:border-t-0 border-amber-900/10 pt-2 md:pt-0 w-full md:w-auto justify-between md:justify-end">
+                          <div className="text-left">
+                            <div className={`text-[10px] ${themeMode === 'sepia' ? 'text-amber-900/60' : 'text-slate-500'}`}>حاكم الحقبة</div>
+                            <div className="text-xs font-black" style={{ color: rulerInfo.color }}>
+                              {rulerInfo.name}
+                            </div>
+                          </div>
+                          <span className="text-xl p-2 rounded-xl bg-amber-850 text-white">
+                            {event.icon}
+                          </span>
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
+
+                {filteredEvents.length === 0 && (
+                  <div className="py-16 text-center col-span-full">
+                    <p className="text-sm font-black">لم نجد أي أحداث تاريخية تطابق مدخلات الفرز الحالية.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* اللوح المنبثق لتفاصيل الحدث والصورة التاريخية الكبرى */}
+            {selectedYearObj && (
+              <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+                <div className={`border rounded-3xl p-6 max-w-2xl w-full shadow-2xl relative animate-scaleIn ${themeMode === 'sepia' ? 'bg-[#f8f1e5] border-[#cfbe9f]' : 'bg-slate-900 border-slate-800'}`}>
+                  
+                  {/* زر الإغلاق */}
+                  <button 
+                    onClick={() => setSelectedYearObj(null)}
+                    className="absolute top-4 left-4 p-2 bg-black/60 hover:bg-black/80 rounded-full text-white transition-colors z-20"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+
+                  {/* الصورة التاريخية الكبرى التوضيحية */}
+                  <div className="w-full h-56 md:h-72 rounded-2xl overflow-hidden relative mb-5 bg-black border border-amber-900/10">
+                    <ImageWithFallback 
+                      src={selectedYearObj.image} 
+                      alt={selectedYearObj.title} 
+                      fallbackIcon={selectedYearObj.icon} 
+                      fallbackColor={getRulerDetails(selectedYearObj.ruler).color}
+                      className={`w-full h-full object-cover ${selectedYearObj.year < 1961 ? 'grayscale contrast-125 sepia-[0.1]' : ''}`} 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                  </div>
+
+                  <div className="flex items-center gap-3.5 mb-4">
+                    <span className="text-3xl p-3 rounded-2xl bg-amber-800 text-white">
+                      {selectedYearObj.icon}
+                    </span>
+                    <div>
+                      <div className="text-3xl font-black text-amber-600 tracking-tight font-mono">{selectedYearObj.year} م</div>
+                      <span className="text-xs font-bold py-0.5 px-2.5 rounded-md bg-amber-850 text-white">
+                        {selectedYearObj.category}
+                      </span>
+                    </div>
+                  </div>
+
+                  <h3 className={`text-lg md:text-xl font-black mb-3 border-b pb-3 ${themeMode === 'sepia' ? 'text-amber-950 border-[#cfbe9f]' : 'text-slate-100 border-slate-800'}`}>
+                    {selectedYearObj.title}
+                  </h3>
+
+                  <div className={`text-sm leading-relaxed mb-6 p-4 rounded-xl border ${themeMode === 'sepia' ? 'bg-[#ebdcb9]/40 border-[#cfbe9f] text-[#3e2723]' : 'bg-slate-950 border-slate-850 text-slate-300'}`}>
+                    <div className="text-xs text-amber-700 font-black mb-1">البيان الأرشيفي للحدث:</div>
+                    {selectedYearObj.desc}
+                  </div>
+
+                  {/* الحاكم المرافق */}
+                  <div className={`p-4 rounded-2xl border flex items-start gap-4 ${themeMode === 'sepia' ? 'bg-[#ebdcb9] border-[#cfbe9f]' : 'bg-slate-950 border-slate-850'}`}>
+                    <div className="w-4 h-12 rounded-full" style={{ backgroundColor: getRulerDetails(selectedYearObj.ruler).color }}></div>
+                    <div>
+                      <div className="text-[10px] text-slate-500">حاكم الكويت في هذا العام المجيد:</div>
+                      <div className={`text-sm font-bold mt-0.5 ${themeMode === 'sepia' ? 'text-amber-950' : 'text-slate-100'}`}>
+                        {getRulerDetails(selectedYearObj.ruler).name}
+                      </div>
+                      <div className={`text-xs mt-1 italic ${themeMode === 'sepia' ? 'text-[#8d6e63]' : 'text-slate-400'}`}>
+                        "{getRulerDetails(selectedYearObj.ruler).title}"
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex gap-3">
+                    <button 
+                      onClick={() => {
+                        setNewNoteTitle(`أبحاث حول عام ${selectedYearObj.year}`);
+                        setNewNoteContent(`لقد قمت بتحليل وتوثيق حدث "${selectedYearObj.title}" الذي تم في عهد ${getRulerDetails(selectedYearObj.ruler).name}، ويظهر هذا الحدث أهمية التخطيط والسيادة الكويتية...`);
+                        setNewNoteYear(selectedYearObj.year.toString());
+                        setActiveTab('notes');
+                        setSelectedYearObj(null);
+                      }}
+                      className="flex-1 bg-amber-850 hover:bg-amber-900 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md"
+                    >
+                      <Plus className="w-4 h-4" />
+                      إرسال لمدونة المؤرخ الشخصية
+                    </button>
+                    <button 
+                      onClick={() => setSelectedYearObj(null)}
+                      className={`font-semibold py-2.5 px-5 rounded-xl text-xs border transition-colors ${themeMode === 'sepia' ? 'bg-white border-[#cfbe9f] text-[#3e2723]' : 'bg-slate-950 border-slate-850 text-slate-300'}`}
+                    >
+                      إغلاق
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* ==========================================
+            التبويب الثاني: سيرة حكام الكويت التفاعلية
+            ========================================== */}
+        {activeTab === 'rulers' && !isAdminMode && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fadeIn">
+            
+            {/* القائمة اليمنى: اختيار الحكام */}
+            <div className={`lg:col-span-5 rounded-2xl p-4 border flex flex-col gap-3 transition-all ${cardThemeClass}`}>
+              <h2 className="text-base font-black mb-2 px-1">شجرة وسيرة حكام الكويت الكرام (1896 - الحاضر)</h2>
+              <div className="flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-1">
+                {rulers.map(r => (
+                  <button 
+                    key={r.id}
+                    onClick={() => setSelectedRulerCard(r)}
+                    className={`p-3.5 rounded-xl border text-right flex items-center justify-between gap-3 transition-all ${selectedRulerCard.id === r.id ? 'bg-amber-800/10 border-amber-800 translate-x-[-4px]' : themeMode === 'sepia' ? 'bg-[#fcf8f0] border-[#cfbe9f]/60 hover:border-amber-800' : 'bg-slate-950 border-slate-850 hover:border-slate-700'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: r.color }}></div>
+                      <div>
+                        <div className={`text-xs font-black ${themeMode === 'sepia' ? 'text-amber-950' : 'text-slate-100'}`}>{r.name}</div>
+                        <div className={`text-[10px] font-mono mt-0.5 ${themeMode === 'sepia' ? 'text-amber-900/60' : 'text-slate-400'}`}>{r.period} م</div>
+                      </div>
+                    </div>
+                    <ChevronLeft className={`w-4 h-4 transition-transform ${selectedRulerCard.id === r.id ? 'text-amber-800 translate-x-1' : 'text-slate-500'}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* اللوح الأيسر: الإنجازات والسيادة */}
+            <div className={`lg:col-span-7 rounded-2xl border shadow-xl overflow-hidden flex flex-col transition-all ${cardThemeClass}`}>
+              
+              <div className={`p-6 bg-gradient-to-br ${selectedRulerCard.bgGradient} border-b border-amber-900/10`}>
+                <div className="flex justify-between items-start">
+                  <span className="text-xs font-mono font-bold bg-slate-950/80 py-1 px-3 rounded-full text-amber-400 border border-slate-800">
+                    حقبة الحكم: {selectedRulerCard.period} م
+                  </span>
+                  <div className="w-5 h-5 rounded-full" style={{ backgroundColor: selectedRulerCard.color }}></div>
+                </div>
+                <h3 className="text-lg md:text-xl font-black text-slate-100 mt-4">{selectedRulerCard.name}</h3>
+                <p className="text-xs md:text-sm text-slate-300 mt-2 leading-relaxed italic border-r-2 border-amber-500 pr-3">
+                  "{selectedRulerCard.title}"
+                </p>
+              </div>
+
+              <div className="p-6 flex-1 bg-slate-950/40">
+                <h4 className="text-xs font-extrabold text-amber-400 tracking-wider uppercase mb-4">أبرز المحطات والإنجازات الوطنية في عهده:</h4>
+                <div className="flex flex-col gap-3.5">
+                  {selectedRulerCard.achievements && selectedRulerCard.achievements.map((ach, i) => (
+                    <div key={i} className={`flex gap-3 items-start p-3 rounded-xl border ${themeMode === 'sepia' ? 'bg-[#fcf8f0] border-[#cfbe9f]' : 'bg-slate-900/40 border-slate-850'}`}>
+                      <span className="p-1.5 bg-amber-800 text-white rounded-lg text-xs font-bold mt-0.5">
+                        {i+1}
+                      </span>
+                      <p className={`text-xs md:text-sm leading-relaxed ${themeMode === 'sepia' ? 'text-amber-950' : 'text-slate-300'}`}>
+                        {ach}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-950/60 border-t border-amber-900/10 text-center">
+                <button 
+                  onClick={() => {
+                    setSelectedRulerFilter(selectedRulerCard.id);
+                    setActiveTab('timeline');
+                  }}
+                  className="text-xs text-amber-600 hover:text-amber-700 font-bold flex items-center justify-center gap-1 mx-auto transition-colors"
+                >
+                  استعراض جميع أحداث هذا العهد على خط البوستر ←
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* ==========================================
+            التبويب الثالث: أطلس المعالم الجغرافية والتاريخية
+            ========================================== */}
+        {activeTab === 'atlas' && !isAdminMode && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fadeIn">
+            
+            {/* خريطة الكويت التفاعلية المتجهة */}
+            <div className={`lg:col-span-7 rounded-2xl p-6 border flex flex-col justify-between min-h-[400px] transition-all ${cardThemeClass}`}>
+              <div>
+                <h2 className="text-base font-black">أطلس الذاكرة الجغرافية والتاريخية</h2>
+                <p className={`text-xs ${themeMode === 'sepia' ? 'text-[#8d6e63]' : 'text-slate-400'}`}>خريطة تفاعلية لأبرز المعالم الكويتية الأيقونية المرتبطة بالأحداث.</p>
+              </div>
+
+              {/* بناء متجه الخريطة */}
+              <div className="my-8 relative w-full max-w-md mx-auto aspect-square flex items-center justify-center bg-black/40 rounded-2xl border border-amber-900/10 shadow-inner overflow-hidden">
+                <svg viewBox="0 0 400 400" className="w-full h-full opacity-35 absolute inset-0">
+                  <path 
+                    d="M 50,150 C 40,240 100,320 180,360 C 260,370 340,320 350,230 C 360,140 280,70 180,60 C 130,55 60,80 50,150 Z" 
+                    fill="none" 
+                    stroke="#b45309" 
+                    strokeWidth="3" 
+                    strokeDasharray="5 5"
+                  />
+                  <path 
+                    d="M 180,180 C 150,210 170,260 210,250 C 240,240 250,200 240,180 Z" 
+                    fill="#1e3a5f" 
+                    opacity="0.6"
+                  />
+                </svg>
+
+                {MAP_LOCATIONS.map((loc, idx) => {
+                  const xCoord = idx === 0 ? '30%' : idx === 1 ? '15%' : idx === 2 ? '50%' : idx === 3 ? '65%' : '45%';
+                  const yCoord = idx === 0 ? '45%' : idx === 1 ? '30%' : idx === 2 ? '75%' : idx === 3 ? '42%' : '20%';
+                  return (
+                    <button 
+                      key={loc.name}
+                      onClick={() => handleQuickQuestion(`حدثني بالتفصيل عن المعلم الجغرافي والأثر الحضاري لـ ${loc.name}؟`)}
+                      className="absolute group z-10 flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 focus:outline-none"
+                      style={{ left: xCoord, top: yCoord }}
+                    >
+                      <div className="w-9 h-9 rounded-full bg-amber-850 text-white font-bold flex items-center justify-center border-4 border-[#ebdcb9] shadow-lg group-hover:scale-125 transition-all animate-pulse">
+                        {loc.icon}
+                      </div>
+                      <span className="mt-1 bg-amber-900 text-white text-[10px] font-black py-0.5 px-2 rounded border border-amber-600 whitespace-nowrap opacity-90 group-hover:opacity-100 transition-opacity">
+                        {loc.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className={`text-center text-[10px] ${themeMode === 'sepia' ? 'text-[#8d6e63]' : 'text-slate-500'}`}>
+                * انقر على أي معلم على الخريطة لتوجيه سؤال تاريخي فوري حوله لمساعد الذكاء الاصطناعي.
+              </div>
+            </div>
+
+            {/* تفاصيل دليل المعالم التاريخية والتطويرية */}
+            <div className="lg:col-span-5 flex flex-col gap-4">
+              <h2 className="text-base font-black px-1">تفاصيل دليل المعالم التاريخية والتطويرية:</h2>
+              {MAP_LOCATIONS.map(loc => (
+                <div 
+                  key={loc.name}
+                  className={`p-4 rounded-xl border flex items-start gap-3 hover:border-amber-800 transition-all ${cardThemeClass}`}
+                >
+                  <span className="text-2xl p-2.5 rounded-lg bg-amber-800 text-white flex-shrink-0">
+                    {loc.icon}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className={`text-xs font-black ${themeMode === 'sepia' ? 'text-amber-950' : 'text-slate-100'}`}>{loc.name}</h3>
+                      <span className="text-[10px] py-0.2 px-1.5 rounded bg-amber-850 text-white font-mono font-bold">
+                        {loc.year} م
+                      </span>
+                    </div>
+                    <p className={`text-[11px] mt-1 leading-relaxed ${themeMode === 'sepia' ? 'text-[#5d4037]' : 'text-slate-400'}`}>
+                      {loc.desc}
+                    </p>
+                    <button 
+                      onClick={() => handleQuickQuestion(`حدثني بالتفصيل عن المعلم الجغرافي والأثر الحضاري لـ ${loc.name}؟`)}
+                      className="text-[10px] text-amber-600 hover:text-amber-700 font-bold mt-2 flex items-center gap-0.5 transition-colors"
+                    >
+                      استشر مساعد الذكاء الاصطناعي ←
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
+
+        {/* ==========================================
+            التبويب الرابع: مساعد التاريخ الذكي (Chrono AI Bot)
+            ========================================== */}
+        {activeTab === 'chat' && !isAdminMode && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fadeIn">
+            
+            {/* اللوح الأيمن: الأسئلة السريعة المقترحة */}
+            <div className="lg:col-span-4 flex flex-col gap-4">
+              <div className={`p-4 rounded-2xl border ${cardThemeClass}`}>
+                <h3 className="text-sm font-black text-amber-800 mb-3 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  أبرز المقترحات الاستقصائية السريعة:
+                </h3>
+                <div className="flex flex-col gap-2">
+                  <button 
+                    onClick={() => handleQuickQuestion("ما هي تفاصيل 'معركة الجهراء' التاريخية وقصة بناء السور الثالث عام 1920؟")}
+                    className={`p-3 rounded-xl border text-right text-xs leading-relaxed transition-all ${themeMode === 'sepia' ? 'bg-[#fcf8f0] border-[#cfbe9f] text-[#3e2723] hover:border-amber-800' : 'bg-slate-950 border-slate-850 text-slate-300 hover:text-amber-300'}`}
+                  >
+                    ⚔️ تفاصيل معركة الجهراء وبناء السور الثالث
+                  </button>
+                  <button 
+                    onClick={() => handleQuickQuestion("كيف كانت كواليس تصدير أول شحنة نفط كويتية عام 1946 وما قصة 'سنة الدشة النفطية'؟")}
+                    className={`p-3 rounded-xl border text-right text-xs leading-relaxed transition-all ${themeMode === 'sepia' ? 'bg-[#fcf8f0] border-[#cfbe9f] text-[#3e2723] hover:border-amber-800' : 'bg-slate-950 border-slate-850 text-slate-300 hover:text-amber-300'}`}
+                  >
+                    🛢️ قصة شحنة النفط الأولى وسنة الدشة 1946
+                  </button>
+                  <button 
+                    onClick={() => handleQuickQuestion("حدثني عن الأثر التاريخي والقانوني لإقرار 'دستور دولة الكويت' عام 1962 م؟")}
+                    className={`p-3 rounded-xl border text-right text-xs leading-relaxed transition-all ${themeMode === 'sepia' ? 'bg-[#fcf8f0] border-[#cfbe9f] text-[#3e2723] hover:border-amber-800' : 'bg-slate-950 border-slate-850 text-slate-300 hover:text-amber-300'}`}
+                  >
+                    📜 دستور الكويت 1962 وأثره على المسار الديمقراطي
+                  </button>
+                  <button 
+                    onClick={() => handleQuickQuestion("ما هي تفاصيل الجهود الإنسانية لدولة الكويت والتي توجتها الأمم المتحدة بتسميتها مركزاً للعمل الإنساني؟")}
+                    className={`p-3 rounded-xl border text-right text-xs leading-relaxed transition-all ${themeMode === 'sepia' ? 'bg-[#fcf8f0] border-[#cfbe9f] text-[#3e2723] hover:border-amber-800' : 'bg-slate-950 border-slate-850 text-slate-300 hover:text-amber-300'}`}
+                  >
+                    🕊️ الكويت مركز للعمل الإنساني وقائد الإنسانية
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* اللوح الأيسر: واجهة المحادثة والدردشة الذكية */}
+            <div className={`lg:col-span-8 rounded-2xl border shadow-xl overflow-hidden flex flex-col h-[550px] transition-all ${cardThemeClass}`}>
+              
+              <div className={`p-4 border-b flex items-center justify-between ${themeMode === 'sepia' ? 'bg-[#ebdcb9]/60 border-[#cfbe9f]' : 'bg-slate-950 border-slate-850'}`}>
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-purple-500/10 text-purple-600 rounded-lg">
+                    <Sparkles className="w-5 h-5 animate-spin" />
+                  </div>
+                  <div>
+                    <h3 className={`text-xs font-black ${themeMode === 'sepia' ? 'text-amber-950' : 'text-slate-100'}`}>مؤرخ الكويت الذكي</h3>
+                    <p className={`text-[10px] ${themeMode === 'sepia' ? 'text-[#8d6e63]' : 'text-slate-500'}`}>مستند إلى خوارزميات الذكاء الاصطناعي الأرشيفية المعززة</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setChatMessages([{ role: 'assistant', text: 'تم تنظيف سجل المحادثة. أنا جاهز لمساعدتكم في تتبع المسار الحضاري والقانوني لدولة الكويت.' }])}
+                  className="p-1 text-slate-500 hover:text-slate-700 text-[10px] flex items-center gap-1 focus:outline-none font-bold"
+                >
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  مسح المحادثة
+                </button>
+              </div>
+
+              {/* تدفق الرسائل التاريخية */}
+              <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+                {chatMessages.map((msg, idx) => (
+                  <div 
+                    key={idx}
+                    className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'self-end flex-row-reverse' : 'self-start'}`}
+                  >
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${msg.role === 'user' ? 'bg-amber-800 text-white' : 'bg-purple-500/15 text-purple-600'}`}>
+                      {msg.role === 'user' ? <User className="w-4 h-4" /> : <Compass className="w-4 h-4" />}
+                    </div>
+                    <div className={`p-4 rounded-2xl text-xs leading-relaxed ${msg.role === 'user' ? 'bg-amber-800 text-white rounded-tr-none' : themeMode === 'sepia' ? 'bg-[#ebdcb9]/20 border border-[#cfbe9f]/60 text-[#3e2723] rounded-tl-none' : 'bg-slate-950 text-slate-100 border border-slate-850 rounded-tl-none'}`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+                
+                {isChatLoading && (
+                  <div className="self-start flex gap-3 max-w-[85%]">
+                    <div className="w-7 h-7 rounded-full bg-purple-500/15 text-purple-600 flex items-center justify-center animate-spin">
+                      <RefreshCw className="w-4 h-4" />
+                    </div>
+                    <div className={`p-4 rounded-2xl text-xs rounded-tl-none flex items-center gap-2 border ${themeMode === 'sepia' ? 'bg-[#ebdcb9]/20 border-[#cfbe9f] text-[#5d4037]' : 'bg-slate-950 border-slate-850 text-slate-400'}`}>
+                      <span className="w-1.5 h-1.5 bg-amber-800 rounded-full animate-bounce"></span>
+                      <span className="w-1.5 h-1.5 bg-amber-800 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                      <span className="w-1.5 h-1.5 bg-amber-800 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                      جاري البحث في الأرشيف الوطني الكويتي...
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* مدخل المحادثة والإرسال */}
+              <form onSubmit={handleSendChatMessage} className={`p-3 border-t flex gap-2 ${themeMode === 'sepia' ? 'bg-[#ebdcb9]/40 border-[#cfbe9f]' : 'bg-slate-950 border-slate-850'}`}>
+                <input 
+                  type="text"
+                  placeholder="اسأل المؤرخ (مثال: حدثني عن قصة دستور عام 1962 م)"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  disabled={isChatLoading}
+                  className={`flex-1 rounded-xl px-4 py-2 text-xs focus:outline-none transition-all ${themeMode === 'sepia' ? 'bg-white border-[#cfbe9f] text-[#3e2723] placeholder-[#8d6e63] focus:border-amber-800' : 'bg-slate-900 border-slate-800 text-slate-100 placeholder-slate-500 focus:border-amber-500'}`}
+                />
+                <button 
+                  type="submit"
+                  disabled={isChatLoading || !chatInput.trim()}
+                  className="bg-amber-800 hover:bg-amber-900 text-white font-bold px-5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  اسأل الآن
+                </button>
+              </form>
+            </div>
+
+          </div>
+        )}
+
+        {/* ==========================================
+            التبويب الخامس: اختبار المعرفة التاريخية (History Quiz Game)
+            ========================================== */}
+        {activeTab === 'quiz' && !isAdminMode && (
+          <div className="max-w-2xl mx-auto w-full animate-fadeIn">
+            <div className={`rounded-3xl p-6 md:p-8 border shadow-2xl transition-all ${cardThemeClass}`}>
+              
+              <div className={`flex justify-between items-center mb-6 border-b pb-4 ${themeMode === 'sepia' ? 'border-[#cfbe9f]' : 'border-slate-800'}`}>
+                <div>
+                  <h2 className="text-lg font-black flex items-center gap-2">
+                    <Award className="w-5 h-5 text-amber-600" />
+                    تحدي المعرفة والتحول التاريخي الكويتي
+                  </h2>
+                  <p className={`text-xs ${themeMode === 'sepia' ? 'text-[#8d6e63]' : 'text-slate-400'}`}>اختبر مستوى إدراكك ومعرفتك بالتواريخ والعهود الكويتية.</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">النتيجة الحالية</div>
+                  <div className="text-lg font-black text-amber-600 font-mono">{score} / {QUIZ_QUESTIONS.length}</div>
+                </div>
+              </div>
+
+              {!quizCompleted ? (
+                <div>
+                  <div className="w-full bg-black/40 rounded-full h-1.5 mb-6 overflow-hidden">
+                    <div 
+                      className="bg-amber-850 h-full transition-all duration-300"
+                      style={{ width: `${((quizIndex + 1) / QUIZ_QUESTIONS.length) * 100}%` }}
+                    ></div>
+                  </div>
+
+                  <span className="text-[10px] font-bold py-1 px-2.5 bg-amber-800 text-white rounded-md">
+                    السؤال {quizIndex + 1} من {QUIZ_QUESTIONS.length}
+                  </span>
+                  
+                  <h3 className={`text-sm md:text-base font-black mt-4 leading-relaxed ${themeMode === 'sepia' ? 'text-amber-950' : 'text-slate-100'}`}>
+                    {QUIZ_QUESTIONS[quizIndex].question}
+                  </h3>
+
+                  <div className="flex flex-col gap-3 mt-6">
+                    {QUIZ_QUESTIONS[quizIndex].options.map((option, i) => {
+                      let btnStyle = themeMode === 'sepia' 
+                        ? "bg-[#fcf8f0] border-[#cfbe9f] text-[#3e2723] hover:border-amber-800" 
+                        : "bg-slate-950 border-slate-850 hover:border-slate-700 text-slate-200";
+                      
+                      if (hasSubmittedAnswer) {
+                        if (i === QUIZ_QUESTIONS[quizIndex].correct) {
+                          btnStyle = "bg-emerald-500/10 border-emerald-500 text-emerald-700 font-bold";
+                        } else if (selectedAnswer === i) {
+                          btnStyle = "bg-red-500/10 border-red-500 text-red-700";
+                        } else {
+                          btnStyle = "opacity-60";
+                        }
+                      } else if (selectedAnswer === i) {
+                        btnStyle = "bg-amber-800/20 border-amber-800 text-amber-900 font-bold";
+                      }
+
+                      return (
+                        <button 
+                          key={i}
+                          onClick={() => handleAnswerSelect(i)}
+                          disabled={hasSubmittedAnswer}
+                          className={`w-full p-4 rounded-xl border text-right text-xs md:text-sm flex items-center justify-between transition-all ${btnStyle}`}
+                        >
+                          <span>{option}</span>
+                          {hasSubmittedAnswer && i === QUIZ_QUESTIONS[quizIndex].correct && (
+                            <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                          )}
+                          {hasSubmittedAnswer && selectedAnswer === i && i !== QUIZ_QUESTIONS[quizIndex].correct && (
+                            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {hasSubmittedAnswer && (
+                    <div className={`mt-6 p-4 rounded-2xl border animate-fadeIn ${themeMode === 'sepia' ? 'bg-[#ebdcb9]/40 border-[#cfbe9f] text-[#3e2723]' : 'bg-slate-950 border-slate-850 text-slate-300'}`}>
+                      <div className="text-xs font-black text-amber-750 mb-1 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-750" />
+                        المرجع والتحليل التاريخي للحدث:
+                      </div>
+                      <p className="text-xs md:text-sm leading-relaxed">
+                        {QUIZ_QUESTIONS[quizIndex].explanation}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="mt-8 pt-4 border-t border-amber-900/10 flex justify-end">
+                    {!hasSubmittedAnswer ? (
+                      <button 
+                        onClick={submitQuizAnswer}
+                        disabled={selectedAnswer === null}
+                        className="bg-amber-850 hover:bg-amber-900 text-white font-extrabold py-3 px-6 rounded-xl text-xs flex items-center gap-1.5 transition-all disabled:opacity-40"
+                      >
+                        تقديم الإجابة النهائية
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={nextQuizQuestion}
+                        className={`font-bold py-3 px-6 rounded-xl text-xs flex items-center gap-1.5 border transition-colors ${themeMode === 'sepia' ? 'bg-white border-[#cfbe9f] text-[#3e2723]' : 'bg-slate-950 border-slate-800 text-slate-200'}`}
+                      >
+                        {quizIndex === QUIZ_QUESTIONS.length - 1 ? 'إنهاء التحدي الملحمي' : 'السؤال التالي'}
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                </div>
+              ) : (
+                <div className="text-center py-8 animate-fadeIn">
+                  <div className="w-20 h-20 bg-amber-800/10 text-amber-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-800/20">
+                    <Award className="w-10 h-10 animate-bounce" />
+                  </div>
+                  <h3 className="text-lg md:text-xl font-black">تم إكمال اختبار الوعي التاريخي بنجاح</h3>
+                  
+                  <div className="my-6">
+                    <p className="text-xs text-slate-500">لقد أحرزت علامة قدرها:</p>
+                    <div className="text-4xl md:text-5xl font-black text-amber-800 font-mono mt-1">
+                      {score} / {QUIZ_QUESTIONS.length}
+                    </div>
+                    <p className="text-xs mt-2">
+                      {score === QUIZ_QUESTIONS.length 
+                        ? 'مذهل! معرفة استباقية ممتازة بدستور ونهضة الكويت.' 
+                        : 'جيد جداً! تصفح شبكة البوستر والدردشة مع مساعد الذكاء الاصطناعي لرفع مستواك المعرفي.'}
+                    </p>
+                  </div>
+
+                  <button 
+                    onClick={restartQuiz}
+                    className="bg-amber-850 hover:bg-amber-900 text-white font-extrabold py-3 px-8 rounded-xl text-xs transition-all shadow-md"
+                  >
+                    إعادة خوض التحدي من جديد
+                  </button>
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
+
+        {/* ==========================================
+            التبويب السادس: مذكراتي السحابية (Notes Tab)
+            ========================================== */}
+        {activeTab === 'notes' && !isAdminMode && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fadeIn">
+            
+            {/* اللوح الأيمن: تدوين ملاحظة جديدة */}
+            <div className={`lg:col-span-5 rounded-2xl p-5 border shadow-xl flex flex-col justify-between transition-all ${cardThemeClass}`}>
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-1.5 bg-amber-800/10 text-amber-800 rounded-lg">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black">مدونة الملاحظات والتعليقات التاريخية</h2>
+                    <p className="text-[10px] text-slate-500">قم بتوثيق أبحاثك وحفظها فورياً في السحابة الأمنية.</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleAddNote} className="flex flex-col gap-4 mt-4">
+                  <div>
+                    <label className="block text-[10px] font-bold mb-1">عنوان الملاحظة / الحدث التابع:</label>
+                    <input 
+                      type="text"
+                      placeholder="مثال: أهمية تماسك سور الكويت الثالث"
+                      value={newNoteTitle}
+                      onChange={(e) => setNewNoteTitle(e.target.value)}
+                      required
+                      className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none transition-all ${inputThemeClass}`}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold mb-1">العام المستهدف:</label>
+                      <input 
+                        type="text"
+                        placeholder="عام الحدث (اختياري)"
+                        value={newNoteYear}
+                        onChange={(e) => setNewNoteYear(e.target.value)}
+                        className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none transition-all ${inputThemeClass}`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold mb-1">البيئة السحابية:</label>
+                      <div className={`border px-3 py-2 rounded-xl text-[10px] text-emerald-600 flex items-center gap-1.5 font-bold ${themeMode === 'sepia' ? 'bg-[#fcf8f0] border-[#cfbe9f]' : 'bg-slate-950 border-slate-850'}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        مزامنة نشطة
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold mb-1">التعليق والتحليل التاريخي:</label>
+                    <textarea 
+                      placeholder="اكتب تفسيرك، ملاحظتك الشخصية أو تفاصيل الحدث الإضافية..."
+                      value={newNoteContent}
+                      onChange={(e) => setNewNoteContent(e.target.value)}
+                      required
+                      rows={5}
+                      className={`w-full border rounded-xl px-3 py-2 text-xs focus:outline-none transition-all resize-none ${inputThemeClass}`}
+                    />
+                  </div>
+
+                  <button 
+                    type="submit"
+                    disabled={isSyncing}
+                    className="bg-amber-850 hover:bg-amber-900 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 mt-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    حفظ ومزامنة فورية بالسحابة
+                  </button>
+                </form>
+              </div>
+
+              <div className="mt-6 border-t border-amber-900/10 pt-4 text-[10px] text-slate-500 flex items-center gap-2 font-mono">
+                <Database className="w-4 h-4 text-slate-400" />
+                <span>المسار السحابي المرخص: /artifacts/{appId}/users/userId/notes</span>
+              </div>
+            </div>
+
+            {/* اللوح الأيسر: قائمة الملاحظات المسترجعة */}
+            <div className="lg:col-span-7 flex flex-col gap-4 animate-fadeIn">
+              <h2 className="text-base font-black px-1 flex items-center justify-between">
+                <span>مسودات المؤرخ المحفوظة سحابياً:</span>
+                {isSyncing && <span className="text-xs text-amber-700 animate-pulse">جاري المزامنة...</span>}
+              </h2>
+
+              <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
+                {notes.map(note => (
+                  <div 
+                    key={note.id}
+                    className={`border p-4 rounded-2xl shadow-sm flex flex-col gap-2.5 transition-all group relative overflow-hidden ${cardThemeClass}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-black">{note.title}</h3>
+                        <span className="text-[9px] py-0.5 px-1.5 rounded-full bg-amber-800 text-white font-bold">
+                          عام {note.year}
+                        </span>
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteNote(note.id)}
+                        disabled={isSyncing}
+                        className="p-1.5 bg-black/5 hover:bg-red-500/10 text-slate-500 hover:text-red-600 rounded-lg transition-colors"
+                        title="حذف من السحابة"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <p className={`text-xs leading-relaxed whitespace-pre-line p-3 rounded-xl ${themeMode === 'sepia' ? 'bg-[#fcf8f0] border border-[#cfbe9f]/60' : 'bg-slate-950 border border-slate-850'}`}>
+                      {note.content}
+                    </p>
+
+                    <div className="text-[9px] text-slate-400 text-left font-mono">
+                      تم الحفظ: {note.timestamp?.seconds ? new Date(note.timestamp.seconds * 1000).toLocaleString('ar-KW') : 'الآن'}
+                    </div>
+                  </div>
+                ))}
+
+                {notes.length === 0 && (
+                  <div className={`p-12 text-center rounded-2xl border ${themeMode === 'sepia' ? 'bg-[#ebdcb9]/20 border-[#cfbe9f]' : 'bg-slate-900/40 border-slate-850'}`}>
+                    <FileText className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                    <p className="text-xs">لا توجد أي ملاحظات أو مسودات محفوظة سحابياً بعد.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        )}
+
+      </main>
+
+      {/* ذيل المنصة والأبعاد القانونية الأكاديمية */}
+      <footer className={`border-t px-4 py-6 text-center text-xs transition-colors duration-500 ${themeMode === 'sepia' ? 'border-[#cfbe9f] bg-[#ebdcb9]/40 text-[#5d4037]' : 'border-slate-850 bg-slate-950 text-slate-400'}`}>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="text-right">
+            <p className="font-black">حقوق الطبع والنشر © 2026 محفوظة للمنصة التاريخية لدولة الكويت</p>
+            <p className="text-[10px] mt-1">
+              فكرة البوستر للدكتور محمد داود سليمان الأحمد | تنفيذ الموقع: المعتز بالله صالح غفران فضل
+            </p>
+          </div>
+          <div className="flex items-center gap-4 text-[11px] font-black">
+            <span className="hover:text-amber-800 transition-colors cursor-pointer" onClick={() => handleQuickQuestion("ما هي المرجعية التاريخية المعتمدة لبوستر الكويت في مائة عام؟")}>المرجعية الأكاديمية</span>
+            <span>|</span>
+            <span className="hover:text-amber-800 transition-colors cursor-pointer" onClick={() => handleQuickQuestion("ما هي حدود دولة الكويت ومساحتها الجغرافية الإجمالية وتاريخ تأسيسها؟")}>حول الكويت</span>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  );
+}
